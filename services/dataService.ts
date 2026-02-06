@@ -8,7 +8,7 @@ const MOCK_DATABASE: Personnel[] = [];
 
 // --- MOCK DATABASE (Users) ---
 const MOCK_USERS: User[] = [
-  { username: '441288', password: '441288', role: UserRole.ADMIN, fullName: 'RIFAT GÜRSES' }
+  { username: '441288', password: '441288', role: UserRole.ADMIN, fullName: 'Yönetici' }
 ];
 
 // --- MOCK DATABASE (History) ---
@@ -307,7 +307,8 @@ export const getAllUsers = async (): Promise<User[]> => {
         const usersData = snapshot.val();
         return Object.values(usersData);
       }
-      return [];
+      // Firebase boşsa varsayılan kullanıcıları dön
+      return [...MOCK_USERS];
     } catch (error) {
       console.error('❌ Kullanıcı listesi alma hatası:', error);
       return [...MOCK_USERS];
