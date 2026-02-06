@@ -17,7 +17,7 @@ export default function App() {
   const [generatingReport, setGeneratingReport] = useState(false);
   const [pastEvents, setPastEvents] = useState<CompletedEvent[]>([]);
   const [stats, setStats] = useState<{ personnel: Personnel, count: number }[]>([]);
-  
+
   // User Creation State
   const [newUserData, setNewUserData] = useState<User>({ username: '', password: '', fullName: '', role: UserRole.USER });
   const [createUserStatus, setCreateUserStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -51,7 +51,7 @@ export default function App() {
     e.preventDefault();
     setLoading(true);
     setAuthError('');
-    
+
     const user = await loginUser(authInput.username, authInput.password);
     if (user) {
       setCurrentUser(user);
@@ -59,7 +59,7 @@ export default function App() {
     } else {
       setAuthError('Kullanıcı adı veya şifre hatalı.');
     }
-    
+
     setLoading(false);
   };
 
@@ -95,7 +95,7 @@ export default function App() {
       setLoading(true);
       const person = await getPersonnelBySicil(val);
       setLoading(false);
-      
+
       if (person) {
         // Check duplicate
         if (addedPersonnel.some(p => p.sicil === person.sicil)) {
@@ -105,13 +105,13 @@ export default function App() {
           const newList = [...addedPersonnel, person];
           setAddedPersonnel(newList);
           setCurrentSicil(''); // Clear input
-          
+
           if (newList.length >= eventData.requiredCount) {
-             setStep(AppStep.COMPLETE);
+            setStep(AppStep.COMPLETE);
           }
         }
       } else {
-         setError('Personel bulunamadı.');
+        setError('Personel bulunamadı.');
       }
     }
   };
@@ -119,20 +119,20 @@ export default function App() {
   const removePerson = (sicilToRemove: string) => {
     setAddedPersonnel(addedPersonnel.filter(p => p.sicil !== sicilToRemove));
     if (step === AppStep.COMPLETE) {
-        setStep(AppStep.ENTRY);
+      setStep(AppStep.ENTRY);
     }
   };
 
   const saveToHistory = () => {
-     // Save only once
-     const now = new Date().toLocaleString('tr-TR');
-     const newEvent: CompletedEvent = {
-         id: Date.now().toString(),
-         date: now,
-         eventName: eventData.eventName,
-         personnel: [...addedPersonnel]
-     };
-     saveCompletedEvent(newEvent);
+    // Save only once
+    const now = new Date().toLocaleString('tr-TR');
+    const newEvent: CompletedEvent = {
+      id: Date.now().toString(),
+      date: now,
+      eventName: eventData.eventName,
+      personnel: [...addedPersonnel]
+    };
+    saveCompletedEvent(newEvent);
   };
 
   const handleDownload = () => {
@@ -152,20 +152,20 @@ export default function App() {
 
     // Try Web Share API (Mobile native share)
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-            await navigator.share({
-                files: [file],
-                title: eventData.eventName,
-                text: 'Görevli Personel Listesi Excel Dosyası'
-            });
-        } catch (err) {
-            console.log("Share failed", err);
-        }
+      try {
+        await navigator.share({
+          files: [file],
+          title: eventData.eventName,
+          text: 'Görevli Personel Listesi Excel Dosyası'
+        });
+      } catch (err) {
+        console.log("Share failed", err);
+      }
     } else {
-        // Fallback for Desktop: Download and alert
-        downloadAsExcel(addedPersonnel, eventData.eventName);
-        alert('Excel dosyası indirildi. WhatsApp Web üzerinden dosyayı sürükleyip bırakarak gönderebilirsiniz.');
-        window.open('https://web.whatsapp.com', '_blank');
+      // Fallback for Desktop: Download and alert
+      downloadAsExcel(addedPersonnel, eventData.eventName);
+      alert('Excel dosyası indirildi. WhatsApp Web üzerinden dosyayı sürükleyip bırakarak gönderebilirsiniz.');
+      window.open('https://web.whatsapp.com', '_blank');
     }
   };
 
@@ -177,10 +177,10 @@ export default function App() {
   const handleWhatsAppToAdmin = () => {
     // 1. Download file for the user to attach
     downloadAsExcel(addedPersonnel, eventData.eventName);
-    
+
     // 2. Open specific chat (No text pre-filled as requested)
-    const phoneNumber = "905383819161";
-    
+    const phoneNumber = "905383819261";
+
     window.open(`https://wa.me/${phoneNumber}`, '_blank');
   };
 
@@ -193,9 +193,9 @@ export default function App() {
   };
 
   const loadHistory = async () => {
-      const history = await getHistory();
-      setPastEvents(history);
-      setStep(AppStep.ADMIN_HISTORY);
+    const history = await getHistory();
+    setPastEvents(history);
+    setStep(AppStep.ADMIN_HISTORY);
   };
 
   const loadStatistics = async () => {
@@ -219,15 +219,15 @@ export default function App() {
           <div className="mx-auto w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-4">
             <Shield className="w-10 h-10 text-white" />
           </div>
-          <h2 className="text-2xl font-bold text-white leading-tight">Akreditasyon Kartı<br/>Oluşturma Sistemi</h2>
+          <h2 className="text-2xl font-bold text-white leading-tight">Akreditasyon Kartı<br />Oluşturma Sistemi</h2>
           <p className="text-blue-100 mt-2 text-sm">Güvenli Görevlendirme</p>
         </div>
-        
+
         <div className="p-8">
           <h3 className="text-xl font-bold text-gray-800 mb-6 text-center">
             Giriş Yap
           </h3>
-          
+
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Kullanıcı Adı</label>
@@ -236,10 +236,10 @@ export default function App() {
                 required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                 value={authInput.username}
-                onChange={(e) => setAuthInput({...authInput, username: e.target.value})}
+                onChange={(e) => setAuthInput({ ...authInput, username: e.target.value })}
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Şifre</label>
               <input
@@ -247,7 +247,7 @@ export default function App() {
                 required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                 value={authInput.password}
-                onChange={(e) => setAuthInput({...authInput, password: e.target.value})}
+                onChange={(e) => setAuthInput({ ...authInput, password: e.target.value })}
               />
             </div>
 
@@ -270,11 +270,11 @@ export default function App() {
           </form>
 
           <div className="mt-6 pt-4 border-t border-gray-100 text-center">
-             <p className="text-xs text-gray-500 font-semibold mb-2">Demo Giriş Bilgileri:</p>
-             <div className="text-xs text-gray-600 bg-gray-100 p-2 rounded">
-                <p>Yönetici: <strong>admin</strong> / <strong>123</strong></p>
-                <p>Personel: <strong>user</strong> / <strong>123</strong></p>
-             </div>
+            <p className="text-xs text-gray-500 font-semibold mb-2">Demo Giriş Bilgileri:</p>
+            <div className="text-xs text-gray-600 bg-gray-100 p-2 rounded">
+              <p>Yönetici: <strong>admin</strong> / <strong>123</strong></p>
+              <p>Personel: <strong>user</strong> / <strong>123</strong></p>
+            </div>
           </div>
         </div>
       </div>
@@ -290,7 +290,7 @@ export default function App() {
       </div>
       <h1 className="text-2xl font-bold text-center text-gray-800 mb-2">Yeni Görev Listesi</h1>
       <p className="text-center text-gray-500 mb-8">Görevli personel listesini oluşturmak için bilgileri giriniz.</p>
-      
+
       <form onSubmit={handleStart} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Müsabaka İsmi</label>
@@ -324,29 +324,29 @@ export default function App() {
       </form>
 
       {currentUser?.role === UserRole.ADMIN && (
-          <div className="mt-6 pt-6 border-t border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-3">
-             <button 
-               onClick={loadHistory}
-               className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
-             >
-               <History className="w-4 h-4" />
-               Geçmiş
-             </button>
-             <button 
-               onClick={loadStatistics}
-               className="bg-gray-100 hover:bg-gray-200 text-purple-700 font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
-             >
-               <BarChart3 className="w-4 h-4" />
-               İstatistikler
-             </button>
-             <button 
-               onClick={() => setStep(AppStep.USER_CREATION)}
-               className="col-span-1 md:col-span-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm border border-slate-200"
-             >
-               <UserCog className="w-4 h-4" />
-               Kullanıcı Oluştur
-             </button>
-          </div>
+        <div className="mt-6 pt-6 border-t border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-3">
+          <button
+            onClick={loadHistory}
+            className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
+          >
+            <History className="w-4 h-4" />
+            Geçmiş
+          </button>
+          <button
+            onClick={loadStatistics}
+            className="bg-gray-100 hover:bg-gray-200 text-purple-700 font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
+          >
+            <BarChart3 className="w-4 h-4" />
+            İstatistikler
+          </button>
+          <button
+            onClick={() => setStep(AppStep.USER_CREATION)}
+            className="col-span-1 md:col-span-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm border border-slate-200"
+          >
+            <UserCog className="w-4 h-4" />
+            Kullanıcı Oluştur
+          </button>
+        </div>
       )}
     </div>
   );
@@ -360,31 +360,31 @@ export default function App() {
             <UserPlus className="w-6 h-6 text-blue-600" />
             Personel Ekleme
           </h2>
-          
+
           <div className="mb-4">
-             <label className="block text-sm font-medium text-gray-700 mb-2">Sicil No Giriniz</label>
-             <input
-               ref={sicilInputRef}
-               type="text"
-               value={currentSicil}
-               onChange={(e) => handleSicilSearch(e.target.value)}
-               className="w-full text-2xl tracking-widest font-mono p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-               placeholder="12345"
-               maxLength={10}
-             />
-             <div className="h-6 mt-2">
-                {loading && <p className="text-sm text-blue-500 animate-pulse">Aranıyor ve Ekleniyor...</p>}
-                {error && <p className="text-sm text-red-500">{error}</p>}
-             </div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Sicil No Giriniz</label>
+            <input
+              ref={sicilInputRef}
+              type="text"
+              value={currentSicil}
+              onChange={(e) => handleSicilSearch(e.target.value)}
+              className="w-full text-2xl tracking-widest font-mono p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              placeholder="12345"
+              maxLength={10}
+            />
+            <div className="h-6 mt-2">
+              {loading && <p className="text-sm text-blue-500 animate-pulse">Aranıyor ve Ekleniyor...</p>}
+              {error && <p className="text-sm text-red-500">{error}</p>}
+            </div>
           </div>
 
           <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 text-sm text-blue-800">
-             <p>Sicil numarası doğru girildiğinde personel otomatik olarak listeye eklenir.</p>
+            <p>Sicil numarası doğru girildiğinde personel otomatik olarak listeye eklenir.</p>
           </div>
         </div>
-        
+
         <div className="bg-gray-100 p-4 rounded-lg text-xs text-gray-500">
-            <p><strong>Not:</strong> Demo verileri için sicil olarak <code>12345, 12346, 12347, 12348, 12349, 11111, 22222</code> deneyiniz.</p>
+          <p><strong>Not:</strong> Demo verileri için sicil olarak <code>12345, 12346, 12347, 12348, 12349, 11111, 22222</code> deneyiniz.</p>
         </div>
       </div>
 
@@ -400,7 +400,7 @@ export default function App() {
             <span className="text-gray-400">/{eventData.requiredCount}</span>
           </div>
         </div>
-        
+
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
           {addedPersonnel.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-gray-400">
@@ -420,16 +420,16 @@ export default function App() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                  <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-2 py-1 rounded">
                     {p.rutbe}
-                    </span>
-                    <button 
-                        onClick={() => removePerson(p.sicil)}
-                        className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                        title="Personeli Sil"
-                    >
-                        <Trash2 className="w-4 h-4" />
-                    </button>
+                  </span>
+                  <button
+                    onClick={() => removePerson(p.sicil)}
+                    className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                    title="Personeli Sil"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             ))
@@ -458,24 +458,24 @@ export default function App() {
             <Save className="w-6 h-6" />
             Listeyi Sisteme Kaydet (Pasif'e At)
           </button>
-          
+
           {/* Özel WhatsApp Butonu */}
           <button
             onClick={handleWhatsAppToAdmin}
             className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white text-lg font-bold py-4 rounded-xl shadow-lg transition-transform hover:-translate-y-1 flex items-center justify-center gap-3"
           >
             <Send className="w-6 h-6" />
-            0538 381 91 61 WhatsApp Mesaj Gönder
+            0538 381 92 61 WhatsApp Mesaj Gönder
           </button>
 
-           <button
+          <button
             onClick={handleDownload}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white text-lg font-bold py-4 rounded-xl shadow-lg transition-transform hover:-translate-y-1 flex items-center justify-center gap-3"
           >
             <FileDown className="w-6 h-6" />
             Excel Olarak İndir ve Kaydet
           </button>
-          
+
           <button
             onClick={handleWhatsAppExcelShare}
             className="w-full bg-green-600 hover:bg-green-700 text-white text-lg font-bold py-4 rounded-xl shadow-lg transition-transform hover:-translate-y-1 flex items-center justify-center gap-3"
@@ -483,7 +483,7 @@ export default function App() {
             <Share2 className="w-6 h-6" />
             Genel Paylaş (WhatsApp/Diğer)
           </button>
-          
+
           <button
             onClick={goBackToMain}
             className="w-full mt-4 bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
@@ -501,79 +501,78 @@ export default function App() {
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="p-4 bg-slate-800 text-white flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <button 
-                onClick={goBackToMain}
-                className="p-1 hover:bg-slate-700 rounded transition-colors"
-                title="Ana Ekrana Dön"
+            <button
+              onClick={goBackToMain}
+              className="p-1 hover:bg-slate-700 rounded transition-colors"
+              title="Ana Ekrana Dön"
             >
-                <ArrowLeft className="w-6 h-6 text-white" />
+              <ArrowLeft className="w-6 h-6 text-white" />
             </button>
             <h2 className="text-xl font-bold flex items-center gap-2">
-                <Activity className="w-6 h-6 text-green-400" />
-                Pasif Denetlemeler
+              <Activity className="w-6 h-6 text-green-400" />
+              Pasif Denetlemeler
             </h2>
           </div>
           <span className="bg-green-500/20 text-green-300 text-xs px-3 py-1 rounded-full border border-green-500/30">
             Kayıtlı Liste
           </span>
         </div>
-        
+
         <div className="p-6">
           <div className="flex items-center gap-4 mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex-wrap">
-             <div className="flex-1 min-w-[200px]">
-                <h3 className="font-bold text-blue-900">{eventData.eventName} - Özel Güvenlik Şube Listesi</h3>
-                <p className="text-sm text-blue-700">
-                    {eventData.creationDate 
-                        ? `${eventData.creationDate} tarihinde oluşturuldu.`
-                        : `${new Date().toLocaleString('tr-TR')} tarihinde oluşturuldu.`
-                    }
-                </p>
-             </div>
-             
-             <div className="flex gap-2">
-               <button 
-                  onClick={handleWhatsAppExcelShare}
-                  className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm transition-colors"
-                >
-                  <Share2 className="w-4 h-4" /> Excel Paylaş
-               </button>
+            <div className="flex-1 min-w-[200px]">
+              <h3 className="font-bold text-blue-900">{eventData.eventName} - Özel Güvenlik Şube Listesi</h3>
+              <p className="text-sm text-blue-700">
+                {eventData.creationDate
+                  ? `${eventData.creationDate} tarihinde oluşturuldu.`
+                  : `${new Date().toLocaleString('tr-TR')} tarihinde oluşturuldu.`
+                }
+              </p>
+            </div>
 
-               <button 
-                  onClick={handleWhatsAppTextShare}
-                  className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm transition-colors"
-                >
-                  <MessageCircle className="w-4 h-4" /> Yazı Paylaş
-               </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleWhatsAppExcelShare}
+                className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm transition-colors"
+              >
+                <Share2 className="w-4 h-4" /> Excel Paylaş
+              </button>
 
-               {currentUser?.role === UserRole.ADMIN && (
-                 <button 
-                   onClick={handleGenerateReport}
-                   disabled={generatingReport}
-                   className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${
-                     generatingReport 
-                      ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
+              <button
+                onClick={handleWhatsAppTextShare}
+                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm transition-colors"
+              >
+                <MessageCircle className="w-4 h-4" /> Yazı Paylaş
+              </button>
+
+              {currentUser?.role === UserRole.ADMIN && (
+                <button
+                  onClick={handleGenerateReport}
+                  disabled={generatingReport}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${generatingReport
+                      ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                       : 'bg-purple-600 hover:bg-purple-700 text-white'
-                   }`}
-                 >
-                   {generatingReport ? (
-                     <>Analiz...</>
-                     ) : (
-                     <><FileText className="w-4 h-4" /> AI Rapor</>
-                   )}
-                 </button>
-               )}
-             </div>
+                    }`}
+                >
+                  {generatingReport ? (
+                    <>Analiz...</>
+                  ) : (
+                    <><FileText className="w-4 h-4" /> AI Rapor</>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
 
           {geminiReport && (
             <div className="mb-8 p-6 bg-purple-50 rounded-xl border border-purple-100">
-               <h4 className="font-bold text-purple-900 mb-3 flex items-center gap-2">
-                 <span className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></span>
-                 Görev Analiz Raporu
-               </h4>
-               <div className="prose prose-sm text-purple-900 whitespace-pre-line">
-                 {geminiReport}
-               </div>
+              <h4 className="font-bold text-purple-900 mb-3 flex items-center gap-2">
+                <span className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></span>
+                Görev Analiz Raporu
+              </h4>
+              <div className="prose prose-sm text-purple-900 whitespace-pre-line">
+                {geminiReport}
+              </div>
             </div>
           )}
 
@@ -596,22 +595,21 @@ export default function App() {
                     <td className="px-6 py-3 text-gray-500">{p.sicil}</td>
                     <td className="px-6 py-3 font-semibold text-gray-800">{p.ad} {p.soyad}</td>
                     <td className="px-6 py-3">
-                      <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                        p.rutbe.includes('Müdür') ? 'bg-red-100 text-red-800' :
-                        p.rutbe.includes('Komiser') ? 'bg-orange-100 text-orange-800' :
-                        'bg-blue-100 text-blue-800'
-                      }`}>
+                      <span className={`px-2 py-1 rounded text-xs font-semibold ${p.rutbe.includes('Müdür') ? 'bg-red-100 text-red-800' :
+                          p.rutbe.includes('Komiser') ? 'bg-orange-100 text-orange-800' :
+                            'bg-blue-100 text-blue-800'
+                        }`}>
                         {p.rutbe}
                       </span>
                     </td>
                     <td className="px-6 py-3 text-gray-500">{p.telefon}</td>
                     <td className="px-6 py-3">
-                        <button 
-                            onClick={() => removePerson(p.sicil)}
-                            className="text-red-400 hover:text-red-600 transition-colors"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                        </button>
+                      <button
+                        onClick={() => removePerson(p.sicil)}
+                        className="text-red-400 hover:text-red-600 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -620,9 +618,9 @@ export default function App() {
           </div>
         </div>
         <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end">
-          <button 
-             onClick={goBackToMain}
-             className="text-gray-500 hover:text-gray-700 text-sm font-medium"
+          <button
+            onClick={goBackToMain}
+            className="text-gray-500 hover:text-gray-700 text-sm font-medium"
           >
             Yeni Liste Oluştur
           </button>
@@ -632,128 +630,127 @@ export default function App() {
   );
 
   const renderAdminHistory = () => (
-      <div className="max-w-4xl mx-auto mt-10">
-          <div className="mb-6 flex items-center gap-4">
-              <button 
-                onClick={() => setStep(AppStep.SETUP)}
-                className="bg-white p-2 rounded-full shadow hover:bg-gray-50 transition-colors"
-              >
-                  <ArrowLeft className="w-5 h-5 text-gray-600"/>
-              </button>
-              <h2 className="text-2xl font-bold text-gray-800">Geçmiş / Pasif Müsabakalar</h2>
-          </div>
-
-          <div className="grid gap-4">
-              {pastEvents.length === 0 ? (
-                  <div className="bg-white p-8 rounded-xl shadow text-center text-gray-500">
-                      <History className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                      <p>Henüz kaydedilmiş bir müsabaka yok.</p>
-                  </div>
-              ) : (
-                  pastEvents.map((event) => (
-                      <div key={event.id} className="bg-white p-6 rounded-xl shadow border border-gray-100 hover:shadow-md transition-shadow">
-                          <div className="flex justify-between items-start">
-                              <div>
-                                  <h3 className="text-lg font-bold text-blue-900">{event.eventName}</h3>
-                                  <p className="text-sm text-gray-500">{event.date}</p>
-                              </div>
-                              <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded font-medium">
-                                  {event.personnel.length} Personel
-                              </span>
-                          </div>
-                          
-                          <div className="mt-4 flex gap-2">
-                             <button
-                                onClick={() => {
-                                    setAddedPersonnel(event.personnel);
-                                    // Pass the historical date
-                                    setEventData({ 
-                                        eventName: event.eventName, 
-                                        requiredCount: event.personnel.length,
-                                        creationDate: event.date 
-                                    });
-                                    setStep(AppStep.PASSIVE_LIST);
-                                }}
-                                className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
-                             >
-                                 <FileText className="w-4 h-4" /> Detayları Gör
-                             </button>
-                          </div>
-                      </div>
-                  ))
-              )}
-          </div>
+    <div className="max-w-4xl mx-auto mt-10">
+      <div className="mb-6 flex items-center gap-4">
+        <button
+          onClick={() => setStep(AppStep.SETUP)}
+          className="bg-white p-2 rounded-full shadow hover:bg-gray-50 transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5 text-gray-600" />
+        </button>
+        <h2 className="text-2xl font-bold text-gray-800">Geçmiş / Pasif Müsabakalar</h2>
       </div>
+
+      <div className="grid gap-4">
+        {pastEvents.length === 0 ? (
+          <div className="bg-white p-8 rounded-xl shadow text-center text-gray-500">
+            <History className="w-12 h-12 mx-auto mb-3 opacity-20" />
+            <p>Henüz kaydedilmiş bir müsabaka yok.</p>
+          </div>
+        ) : (
+          pastEvents.map((event) => (
+            <div key={event.id} className="bg-white p-6 rounded-xl shadow border border-gray-100 hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-lg font-bold text-blue-900">{event.eventName}</h3>
+                  <p className="text-sm text-gray-500">{event.date}</p>
+                </div>
+                <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded font-medium">
+                  {event.personnel.length} Personel
+                </span>
+              </div>
+
+              <div className="mt-4 flex gap-2">
+                <button
+                  onClick={() => {
+                    setAddedPersonnel(event.personnel);
+                    // Pass the historical date
+                    setEventData({
+                      eventName: event.eventName,
+                      requiredCount: event.personnel.length,
+                      creationDate: event.date
+                    });
+                    setStep(AppStep.PASSIVE_LIST);
+                  }}
+                  className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
+                >
+                  <FileText className="w-4 h-4" /> Detayları Gör
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
   );
 
   const renderStatistics = () => (
     <div className="max-w-4xl mx-auto mt-10">
-        <div className="mb-6 flex items-center gap-4">
-            <button 
-              onClick={() => setStep(AppStep.SETUP)}
-              className="bg-white p-2 rounded-full shadow hover:bg-gray-50 transition-colors"
-            >
-                <ArrowLeft className="w-5 h-5 text-gray-600"/>
-            </button>
-            <h2 className="text-2xl font-bold text-gray-800">Personel Görev İstatistikleri</h2>
+      <div className="mb-6 flex items-center gap-4">
+        <button
+          onClick={() => setStep(AppStep.SETUP)}
+          className="bg-white p-2 rounded-full shadow hover:bg-gray-50 transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5 text-gray-600" />
+        </button>
+        <h2 className="text-2xl font-bold text-gray-800">Personel Görev İstatistikleri</h2>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+        <div className="p-4 bg-purple-800 text-white">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="w-6 h-6 text-purple-300" />
+            <div>
+              <h3 className="font-bold">Görev Dağılım Analizi</h3>
+              <p className="text-xs text-purple-200">Personelin toplam görev alma sayıları</p>
+            </div>
+          </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-            <div className="p-4 bg-purple-800 text-white">
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="w-6 h-6 text-purple-300" />
-                  <div>
-                    <h3 className="font-bold">Görev Dağılım Analizi</h3>
-                    <p className="text-xs text-purple-200">Personelin toplam görev alma sayıları</p>
-                  </div>
-                </div>
-            </div>
-
-            <div className="overflow-x-auto">
-                <table className="min-w-full text-left text-sm">
-                  <thead className="bg-gray-100 text-gray-600 uppercase tracking-wider font-semibold">
-                    <tr>
-                      <th className="px-6 py-3 text-center w-20">Sıra</th>
-                      <th className="px-6 py-3">Sicil</th>
-                      <th className="px-6 py-3">Ad Soyad</th>
-                      <th className="px-6 py-3">Rütbe</th>
-                      <th className="px-6 py-3 text-right">Toplam Görev</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {stats.map((item, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50">
-                        <td className="px-6 py-3 text-center">
-                            <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
-                                idx === 0 ? 'bg-yellow-100 text-yellow-700' :
-                                idx === 1 ? 'bg-gray-200 text-gray-700' :
-                                idx === 2 ? 'bg-orange-100 text-orange-700' :
-                                'text-gray-500'
-                            }`}>
-                                {idx + 1}
-                            </span>
-                        </td>
-                        <td className="px-6 py-3 text-gray-500 font-mono">{item.personnel.sicil}</td>
-                        <td className="px-6 py-3 font-semibold text-gray-800">{item.personnel.ad} {item.personnel.soyad}</td>
-                        <td className="px-6 py-3 text-gray-500">{item.personnel.rutbe}</td>
-                        <td className="px-6 py-3 text-right">
-                           <span className="bg-purple-100 text-purple-800 font-bold px-3 py-1 rounded-full">
-                             {item.count}
-                           </span>
-                        </td>
-                      </tr>
-                    ))}
-                    {stats.length === 0 && (
-                        <tr>
-                            <td colSpan={5} className="p-8 text-center text-gray-500">
-                                Henüz istatistik verisi bulunmuyor.
-                            </td>
-                        </tr>
-                    )}
-                  </tbody>
-                </table>
-            </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-left text-sm">
+            <thead className="bg-gray-100 text-gray-600 uppercase tracking-wider font-semibold">
+              <tr>
+                <th className="px-6 py-3 text-center w-20">Sıra</th>
+                <th className="px-6 py-3">Sicil</th>
+                <th className="px-6 py-3">Ad Soyad</th>
+                <th className="px-6 py-3">Rütbe</th>
+                <th className="px-6 py-3 text-right">Toplam Görev</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {stats.map((item, idx) => (
+                <tr key={idx} className="hover:bg-gray-50">
+                  <td className="px-6 py-3 text-center">
+                    <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${idx === 0 ? 'bg-yellow-100 text-yellow-700' :
+                        idx === 1 ? 'bg-gray-200 text-gray-700' :
+                          idx === 2 ? 'bg-orange-100 text-orange-700' :
+                            'text-gray-500'
+                      }`}>
+                      {idx + 1}
+                    </span>
+                  </td>
+                  <td className="px-6 py-3 text-gray-500 font-mono">{item.personnel.sicil}</td>
+                  <td className="px-6 py-3 font-semibold text-gray-800">{item.personnel.ad} {item.personnel.soyad}</td>
+                  <td className="px-6 py-3 text-gray-500">{item.personnel.rutbe}</td>
+                  <td className="px-6 py-3 text-right">
+                    <span className="bg-purple-100 text-purple-800 font-bold px-3 py-1 rounded-full">
+                      {item.count}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+              {stats.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="p-8 text-center text-gray-500">
+                    Henüz istatistik verisi bulunmuyor.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
+      </div>
     </div>
   );
 
@@ -761,15 +758,15 @@ export default function App() {
     <div className="min-h-screen flex items-center justify-center px-4 -mt-20">
       <div className="max-w-md w-full bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
         <div className="bg-slate-800 p-6 flex items-center gap-3">
-            <button 
-              onClick={() => setStep(AppStep.SETUP)}
-              className="p-1 hover:bg-slate-700 rounded text-white"
-            >
-              <ArrowLeft className="w-6 h-6" />
-            </button>
-            <h2 className="text-xl font-bold text-white">Kullanıcı Oluştur</h2>
+          <button
+            onClick={() => setStep(AppStep.SETUP)}
+            className="p-1 hover:bg-slate-700 rounded text-white"
+          >
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+          <h2 className="text-xl font-bold text-white">Kullanıcı Oluştur</h2>
         </div>
-        
+
         <div className="p-8">
           <form onSubmit={handleCreateUser} className="space-y-4">
             <div>
@@ -779,7 +776,7 @@ export default function App() {
                 required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                 value={newUserData.fullName}
-                onChange={(e) => setNewUserData({...newUserData, fullName: e.target.value})}
+                onChange={(e) => setNewUserData({ ...newUserData, fullName: e.target.value })}
                 placeholder="Örn: Ali Veli"
               />
             </div>
@@ -791,11 +788,11 @@ export default function App() {
                 required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                 value={newUserData.username}
-                onChange={(e) => setNewUserData({...newUserData, username: e.target.value})}
+                onChange={(e) => setNewUserData({ ...newUserData, username: e.target.value })}
                 placeholder="kullanici123"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Şifre</label>
               <input
@@ -803,7 +800,7 @@ export default function App() {
                 required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                 value={newUserData.password}
-                onChange={(e) => setNewUserData({...newUserData, password: e.target.value})}
+                onChange={(e) => setNewUserData({ ...newUserData, password: e.target.value })}
                 placeholder="******"
               />
             </div>
@@ -813,7 +810,7 @@ export default function App() {
               <select
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
                 value={newUserData.role}
-                onChange={(e) => setNewUserData({...newUserData, role: e.target.value as UserRole})}
+                onChange={(e) => setNewUserData({ ...newUserData, role: e.target.value as UserRole })}
               >
                 <option value={UserRole.USER}>Personel (Standart)</option>
                 <option value={UserRole.ADMIN}>Yönetici (Admin)</option>
@@ -824,7 +821,7 @@ export default function App() {
               <p className="text-red-500 text-sm text-center">Kullanıcı zaten mevcut veya bir hata oluştu.</p>
             )}
             {createUserStatus === 'success' && (
-               <p className="text-green-600 text-sm text-center font-semibold">Kullanıcı başarıyla oluşturuldu!</p>
+              <p className="text-green-600 text-sm text-center font-semibold">Kullanıcı başarıyla oluşturuldu!</p>
             )}
 
             <button
@@ -841,7 +838,7 @@ export default function App() {
   );
 
   if (step === AppStep.LOGIN) return renderLogin();
-  
+
   return (
     <div className="min-h-screen pb-20">
       {/* Header */}
@@ -849,26 +846,26 @@ export default function App() {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 p-2 rounded-lg">
-               <Shield className="w-6 h-6 text-white" />
+              <Shield className="w-6 h-6 text-white" />
             </div>
             <div>
               <h1 className="text-lg font-bold tracking-wide">AKREDİTASYON SİSTEMİ</h1>
               <p className="text-xs text-slate-400">Kart Oluşturma & Görev Takip</p>
             </div>
           </div>
-          
+
           {currentUser && (
             <div className="flex items-center gap-4">
               <div className="text-right hidden md:block">
                 <p className="text-sm font-medium">{currentUser.fullName}</p>
                 <p className="text-xs text-slate-400 flex justify-end gap-1">
-                   {currentUser.role === UserRole.ADMIN ? 
-                     <span className="text-red-400 font-bold">Yönetici</span> : 
-                     <span className="text-green-400">Personel</span>
-                   }
+                  {currentUser.role === UserRole.ADMIN ?
+                    <span className="text-red-400 font-bold">Yönetici</span> :
+                    <span className="text-green-400">Personel</span>
+                  }
                 </p>
               </div>
-              <button 
+              <button
                 onClick={handleLogout}
                 className="bg-slate-800 hover:bg-slate-700 p-2 rounded-lg transition-colors"
                 title="Çıkış Yap"
