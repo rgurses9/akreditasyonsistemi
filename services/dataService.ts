@@ -1,6 +1,6 @@
 import { Personnel, User, UserRole, CompletedEvent } from '../types';
 import { database } from './firebase';
-import { ref, get } from 'firebase/database';
+import { ref, get, set } from 'firebase/database';
 
 // --- MOCK DATABASE (Personnel) ---
 // Test verileri kaldırıldı - Tüm personel verisi Firebase'de
@@ -190,18 +190,44 @@ export const formatForWhatsApp = (data: Personnel[], eventName: string, dateStr?
 
 // --- HISTORY SERVICES ---
 
-export const saveCompletedEvent = (eventData: CompletedEvent) => {
-  MOCK_HISTORY.unshift(eventData); // Add to beginning
+export const saveCompletedEvent = async (eventData: CompletedEvent): Promise<boolean> => {
+  // Memory'ye ekle
+  MOCK_HISTORY.unshift(eventData);
+
+  // Firebase'e kaydet
+  if (database) {
+    try {
+      const eventRef = ref(database, `history/${eventData.id}`);
+      await set(eventRef, eventData);
+      console.log(`✅ Etkinlik Firebase'e kaydedildi: ${eventData.eventName}`);
+      return true;
+    } catch (error) {
+      console.error('❌ Firebase kaydetme hatası:', error);
+      return false;
+    }
+  }
+
+  return true;
 };
 
-export const deleteEvent = (eventId: string): boolean => {
-  const initialLength = MOCK_HISTORY.length;
+export const deleteEvent = async (eventId: string): Promise<boolean> => {
+  // Memory'den sil
   const index = MOCK_HISTORY.findIndex(event => event.id === eventId);
-
   if (index !== -1) {
     MOCK_HISTORY.splice(index, 1);
-    console.log(`✅ Etkinlik silindi: ${eventId}`);
-    return true;
+  }
+
+  // Firebase'den sil
+  if (database) {
+    try {
+      const eventRef = ref(database, `history/${eventId}`);
+      await set(eventRef, null); // null = delete
+      console.log(`✅ Etkinlik Firebase'den silindi: ${eventId}`);
+      return true;
+    } catch (error) {
+      console.error('❌ Firebase silme hatası:', error);
+      return false;
+    }
   }
 
   console.warn(`⚠️ Etkinlik bulunamadı: ${eventId}`);
@@ -209,11 +235,42 @@ export const deleteEvent = (eventId: string): boolean => {
 };
 
 export const getHistory = async (): Promise<CompletedEvent[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve([...MOCK_HISTORY]);
-    }, 300);
-  });
+  // Firebase'den çek
+  if (database) {
+    try {
+      const historyRef = ref(database, 'history');
+      const snapshot = await get(historyRef);
+
+      if (snapshot.exists()) {
+        const historyData = snapshot.val();
+        const events: CompletedEvent[] = Object.values(historyData);
+
+        // Tarihe göre sırala (en yeni önce)
+        events.sort((a, b) => {
+          const dateA = new Date(a.date.split(' ')[0].split('.').reverse().join('-'));
+          const dateB = new Date(b.date.split(' ')[0].split('.').reverse().join('-'));
+          return dateB.getTime() - dateA.getTime();
+        });
+
+        // Memory'yi de güncelle
+        MOCK_HISTORY.length = 0;
+        MOCK_HISTORY.push(...events);
+
+        console.log(`✅ Firebase'den ${events.length} etkinlik yüklendi`);
+        return events;
+      }
+
+      console.log('ℹ️ Firebase\'de henüz etkinlik yok');
+      return [];
+    } catch (error) {
+      console.error('❌ Firebase okuma hatası:', error);
+      // Hata durumunda memory'deki veriyi dön
+      return [...MOCK_HISTORY];
+    }
+  }
+
+  // Firebase yoksa memory'den dön
+  return [...MOCK_HISTORY];
 };
 
 export const getPersonnelStatistics = async (): Promise<{ personnel: Personnel, count: number }[]> => {

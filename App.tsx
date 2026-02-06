@@ -123,7 +123,7 @@ export default function App() {
     }
   };
 
-  const saveToHistory = () => {
+  const saveToHistory = async () => {
     // Save only once
     const now = new Date().toLocaleString('tr-TR');
     const newEvent: CompletedEvent = {
@@ -132,7 +132,7 @@ export default function App() {
       eventName: eventData.eventName,
       personnel: [...addedPersonnel]
     };
-    saveCompletedEvent(newEvent);
+    await saveCompletedEvent(newEvent);
   };
 
   const handleDownload = () => {
