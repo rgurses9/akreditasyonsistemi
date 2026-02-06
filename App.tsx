@@ -190,11 +190,15 @@ export default function App() {
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
-  const handleWhatsAppToAdmin = () => {
+  const handleWhatsAppToAdmin = async () => {
     // 1. Download file for the user to attach
     downloadAsExcel(addedPersonnel, eventData.eventName);
 
-    // 2. Open specific chat (No text pre-filled as requested)
+    // 2. Save to history (Passive List)
+    await saveToHistory();
+    setStep(AppStep.PASSIVE_LIST);
+
+    // 3. Open specific chat (No text pre-filled as requested)
     const phoneNumber = "905383819261";
 
     window.open(`https://wa.me/${phoneNumber}`, '_blank');
@@ -318,14 +322,14 @@ export default function App() {
   );
 
   const renderSetup = () => (
-    <div className="max-w-md mx-auto bg-white p-8 rounded-xl shadow-lg border border-gray-100 mt-20 relative">
+    <div className="max-w-md mx-auto bg-white p-6 rounded-xl shadow-lg border border-gray-100 mt-20 relative">
       <div className="flex justify-center mb-6">
-        <div className="bg-blue-100 p-4 rounded-full">
-          <Shield className="w-12 h-12 text-blue-600" />
+        <div className="bg-blue-100 p-3 rounded-full">
+          <Shield className="w-10 h-10 text-blue-600" />
         </div>
       </div>
-      <h1 className="text-2xl font-bold text-center text-gray-800 mb-2">Yeni Görev Listesi</h1>
-      <p className="text-center text-gray-500 mb-8">Görevli personel listesini oluşturmak için bilgileri giriniz.</p>
+      <h1 className="text-xl font-bold text-center text-gray-800 mb-2">Yeni Görev Listesi</h1>
+      <p className="text-center text-gray-500 mb-6 text-sm">Görevli personel listesini oluşturmak için bilgileri giriniz.</p>
 
       <form onSubmit={handleStart} className="space-y-4">
         <div>
@@ -359,32 +363,34 @@ export default function App() {
         </button>
       </form>
 
-      {currentUser?.role === UserRole.ADMIN && (
-        <div className="mt-6 pt-6 border-t border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-3">
-          <button
-            onClick={loadHistory}
-            className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
-          >
-            <History className="w-4 h-4" />
-            Geçmiş
-          </button>
-          <button
-            onClick={loadStatistics}
-            className="bg-gray-100 hover:bg-gray-200 text-purple-700 font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
-          >
-            <BarChart3 className="w-4 h-4" />
-            İstatistikler
-          </button>
-          <button
-            onClick={loadUsers}
-            className="col-span-1 md:col-span-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm border border-slate-200"
-          >
-            <UserCog className="w-4 h-4" />
-            Kullanıcı Yönetimi
-          </button>
-        </div>
-      )}
-    </div>
+      {
+        currentUser?.role === UserRole.ADMIN && (
+          <div className="mt-6 pt-6 border-t border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-3">
+            <button
+              onClick={loadHistory}
+              className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
+            >
+              <History className="w-4 h-4" />
+              Geçmiş
+            </button>
+            <button
+              onClick={loadStatistics}
+              className="bg-gray-100 hover:bg-gray-200 text-purple-700 font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
+            >
+              <BarChart3 className="w-4 h-4" />
+              İstatistikler
+            </button>
+            <button
+              onClick={loadUsers}
+              className="col-span-1 md:col-span-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm border border-slate-200"
+            >
+              <UserCog className="w-4 h-4" />
+              Kullanıcı Yönetimi
+            </button>
+          </div>
+        )
+      }
+    </div >
   );
 
   const renderEntry = () => (
@@ -472,47 +478,47 @@ export default function App() {
   );
 
   const renderComplete = () => (
-    <div className="max-w-2xl mx-auto mt-20 text-center">
-      <div className="bg-white p-10 rounded-2xl shadow-xl border border-green-100">
-        <div className="mx-auto w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
-          <CheckCircle className="w-10 h-10 text-green-600" />
+    <div className="max-w-2xl mx-auto mt-10 text-center">
+      <div className="bg-white p-8 rounded-2xl shadow-xl border border-green-100">
+        <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+          <CheckCircle className="w-8 h-8 text-green-600" />
         </div>
-        <h2 className="text-3xl font-bold text-gray-800 mb-2">Liste Hazır!</h2>
-        <p className="text-gray-600 mb-8">
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Liste Hazır!</h2>
+        <p className="text-gray-600 mb-6 text-sm">
           Hedeflenen <strong>{eventData.requiredCount}</strong> personel sayısına ulaşıldı.
         </p>
 
         <div className="flex flex-col gap-3">
           <button
             onClick={handleSaveOnly}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-lg font-bold py-4 rounded-xl shadow-lg transition-transform hover:-translate-y-1 flex items-center justify-center gap-3"
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-base font-bold py-3 rounded-xl shadow-lg transition-transform hover:-translate-y-1 flex items-center justify-center gap-3"
           >
-            <Save className="w-6 h-6" />
+            <Save className="w-5 h-5" />
             Listeyi Sisteme Kaydet (Pasif'e At)
           </button>
 
           {/* Özel WhatsApp Butonu */}
           <button
             onClick={handleWhatsAppToAdmin}
-            className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white text-lg font-bold py-4 rounded-xl shadow-lg transition-transform hover:-translate-y-1 flex items-center justify-center gap-3"
+            className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white text-base font-bold py-3 rounded-xl shadow-lg transition-transform hover:-translate-y-1 flex items-center justify-center gap-3"
           >
-            <Send className="w-6 h-6" />
+            <Send className="w-5 h-5" />
             0538 381 92 61 WhatsApp Mesaj Gönder
           </button>
 
           <button
             onClick={handleDownload}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white text-lg font-bold py-4 rounded-xl shadow-lg transition-transform hover:-translate-y-1 flex items-center justify-center gap-3"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white text-base font-bold py-3 rounded-xl shadow-lg transition-transform hover:-translate-y-1 flex items-center justify-center gap-3"
           >
-            <FileDown className="w-6 h-6" />
+            <FileDown className="w-5 h-5" />
             Excel Olarak İndir ve Kaydet
           </button>
 
           <button
             onClick={handleWhatsAppExcelShare}
-            className="w-full bg-green-600 hover:bg-green-700 text-white text-lg font-bold py-4 rounded-xl shadow-lg transition-transform hover:-translate-y-1 flex items-center justify-center gap-3"
+            className="w-full bg-green-600 hover:bg-green-700 text-white text-base font-bold py-3 rounded-xl shadow-lg transition-transform hover:-translate-y-1 flex items-center justify-center gap-3"
           >
-            <Share2 className="w-6 h-6" />
+            <Share2 className="w-5 h-5" />
             Genel Paylaş (WhatsApp/Diğer)
           </button>
 
@@ -597,7 +603,14 @@ export default function App() {
           </div>
 
           {geminiReport && (
-            <div className="mb-8 p-6 bg-purple-50 rounded-xl border border-purple-100">
+            <div className="mb-8 p-6 bg-purple-50 rounded-xl border border-purple-100 relative">
+              <button
+                onClick={() => setGeminiReport('')}
+                className="absolute top-4 right-4 text-purple-400 hover:text-purple-700 p-2 hover:bg-purple-100 rounded-full transition-colors"
+                title="Raporu Kapat"
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
               <h4 className="font-bold text-purple-900 mb-3 flex items-center gap-2">
                 <span className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></span>
                 Görev Analiz Raporu
