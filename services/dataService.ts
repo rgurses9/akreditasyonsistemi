@@ -3,32 +3,17 @@ import { database } from './firebase';
 import { ref, get } from 'firebase/database';
 
 // --- MOCK DATABASE (Personnel) ---
-const MOCK_DATABASE: Personnel[] = [
-  { sicil: "12345", ad: "Ahmet", soyad: "Yılmaz", rutbe: "Polis Memuru", tc: "12345678901", dogumTarihi: "15.05.1990", telefon: "0555 111 22 33" },
-  { sicil: "12346", ad: "Mehmet", soyad: "Demir", rutbe: "Başpolis", tc: "23456789012", dogumTarihi: "20.10.1985", telefon: "0555 222 33 44" },
-  { sicil: "12347", ad: "Ayşe", soyad: "Kaya", rutbe: "Komiser Yardımcısı", tc: "34567890123", dogumTarihi: "05.03.1992", telefon: "0555 333 44 55" },
-  { sicil: "12348", ad: "Fatma", soyad: "Çelik", rutbe: "Polis Memuru", tc: "45678901234", dogumTarihi: "12.12.1995", telefon: "0555 444 55 66" },
-  { sicil: "12349", ad: "Mustafa", soyad: "Şahin", rutbe: "Bekçi", tc: "56789012345", dogumTarihi: "01.01.1998", telefon: "0555 555 66 77" },
-  { sicil: "11111", ad: "Ali", soyad: "Öztürk", rutbe: "Emniyet Müdürü", tc: "67890123456", dogumTarihi: "10.09.1975", telefon: "0555 666 77 88" },
-  { sicil: "22222", ad: "Zeynep", soyad: "Arslan", rutbe: "Polis Memuru", tc: "78901234567", dogumTarihi: "25.06.1993", telefon: "0555 777 88 99" },
-];
+// Test verileri kaldırıldı - Tüm personel verisi Firebase'de
+const MOCK_DATABASE: Personnel[] = [];
 
 // --- MOCK DATABASE (Users) ---
 const MOCK_USERS: User[] = [
-  { username: 'admin', password: '123', role: UserRole.ADMIN, fullName: 'Sistem Yöneticisi' },
-  { username: 'user', password: '123', role: UserRole.USER, fullName: 'Personel Kullanıcısı' }
+  { username: '441288', password: '441288', role: UserRole.ADMIN, fullName: 'RIFAT GÜRSES' }
 ];
 
 // --- MOCK DATABASE (History) ---
-// In a real app, this would be in a database.
-const MOCK_HISTORY: CompletedEvent[] = [
-  {
-    id: '1',
-    date: '06.02.2024 14:30',
-    eventName: 'Geçmiş Derbi Maçı',
-    personnel: [MOCK_DATABASE[0], MOCK_DATABASE[1]]
-  }
-];
+// Test verileri kaldırıldı
+const MOCK_HISTORY: CompletedEvent[] = [];
 
 // --- PERSONNEL SERVICES ---
 
