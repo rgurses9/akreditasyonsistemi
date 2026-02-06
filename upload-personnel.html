@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personel Verisi Firebase'e Yükleme</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Personel Verisi Firebase'e Yükleme</h1>
+        <p>Bu araç, personnel_data.json dosyasındaki 52 personel verisini Firebase Realtime Database'e yükler.</p>
+        
+        <button id="uploadBtn" onclick="uploadData()">🚀 Verileri Firebase'e Yükle</button>
+        <button id="testBtn" onclick="testData()">🔍 Örnek Veri Çek (Test)</button>
+        
+        <div id="status"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+        import { getDatabase, ref, set, get } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyByfKGwyEzeL86S57zmLs1Smj9Yg3hOVd4",
+            authDomain: "akreditasyonkarti.firebaseapp.com",
+            databaseURL: "https://akreditasyonkarti-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "akreditasyonkarti",
+            storageBucket: "akreditasyonkarti.firebasestorage.app",
+            messagingSenderId: "1044285877635",
+            appId: "1:1044285877635:web:9b5fb77d694891de73dab6"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        const personnelData = [
+            {"SN": "1", "SİCİLİ": "286855", "TC_KİMLİK": "41377548368", "ADI": "SERHAT KALYONCU", "RÜTBESİ": "3.SINIF EMNİYET MÜDÜRÜ", "DOGUM_TARİHİ": "18.08.1985", "CEP_TEL": "0 (505) 211 52 02"},
+            {"SN": "2", "SİCİLİ": "458027", "TC_KİMLİK": "27431151958", "ADI": "SİNAN BOYRACI", "RÜTBESİ": "KOMİSER", "DOGUM_TARİHİ": "24.08.1993", "CEP_TEL": "0 (507) 513 48 33"},
+            {"SN": "3", "SİCİLİ": "238371", "TC_KİMLİK": "12970225536", "ADI": "SUZAN HALICI", "RÜTBESİ": "KOMİSER", "DOGUM_TARİHİ": "19.08.1980", "CEP_TEL": "0 (505) 346 13 80"},
+            {"SN": "4", "SİCİLİ": "182004", "TC_KİMLİK": "31435741480", "ADI": "ADEM GÜLAL", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "01.04.1971", "CEP_TEL": "0 (505) 434 79 32"},
+            {"SN": "5", "SİCİLİ": "197187", "TC_KİMLİK": "44143790732", "ADI": "TEVFİK BAŞTÜRK", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "05.09.1974", "CEP_TEL": "0 (505) 215 88 08"},
+            {"SN": "6", "SİCİLİ": "217751", "TC_KİMLİK": "28709554730", "ADI": "ZEKİ GEZİCİ", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "2/20/1973", "CEP_TEL": "0 (505) 237 51 17"},
+            {"SN": "7", "SİCİLİ": "246379", "TC_KİMLİK": "12368416270", "ADI": "YAŞAR GİRAY DEMİRALAY", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "15.03.1978", "CEP_TEL": "0 (505) 237 55 32"},
+            {"SN": "8", "SİCİLİ": "273473", "TC_KİMLİK": "25097270136", "ADI": "OSMAN MAHİR ÇELİK", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "23.04.1982", "CEP_TEL": "0 (505) 355 34 22"},
+            {"SN": "9", "SİCİLİ": "273849", "TC_KİMLİK": "57064390554", "ADI": "YAKUP BAŞ", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "27.09.1979", "CEP_TEL": "0 (505) 491 30 51"},
+            {"SN": "10", "SİCİLİ": "291310", "TC_KİMLİK": "59683378166", "ADI": "TANSU TAN", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "22.07.1986", "CEP_TEL": "0 (532) 285 72 02"},
+            {"SN": "11", "SİCİLİ": "322892", "TC_KİMLİK": "27890471154", "ADI": "ELÇİN BAYKURT", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "07.12.1982", "CEP_TEL": "0 (544) 290 81 82"},
+            {"SN": "12", "SİCİLİ": "373083", "TC_KİMLİK": "32767536560", "ADI": "AYVAZ TUNA", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "8/22/1986", "CEP_TEL": "0 (544) 269 33 70"},
+            {"SN": "13", "SİCİLİ": "382116", "TC_KİMLİK": "60175477748", "ADI": "ABDULLAH AKARÇAY", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "18.07.1993", "CEP_TEL": "0 (554) 528 24 24"},
+            {"SN": "14", "SİCİLİ": "394712", "TC_KİMLİK": "14930778212", "ADI": "FIRAT KÖROĞLU", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "7/26/1990", "CEP_TEL": "0 (543) 469 57 67"},
+            {"SN": "15", "SİCİLİ": "441288", "TC_KİMLİK": "27257519222", "ADI": "RIFAT GÜRSES", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "07.07.1992", "CEP_TEL": "0 (530) 785 30 07"},
+            {"SN": "16", "SİCİLİ": "441430", "TC_KİMLİK": "12511950644", "ADI": "MERT NAR", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "23.09.1993", "CEP_TEL": "0 (554) 155 18 13"},
+            {"SN": "17", "SİCİLİ": "445741", "TC_KİMLİK": "16262822212", "ADI": "DENİZ DİRSEHAN ÖZCAN", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "28.01.1991", "CEP_TEL": "0 (542) 299 83 44"},
+            {"SN": "18", "SİCİLİ": "445960", "TC_KİMLİK": "34262153174", "ADI": "EMRE DEMİR", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "1/15/1991", "CEP_TEL": "0 (531) 916 22 18"},
+            {"SN": "19", "SİCİLİ": "446756", "TC_KİMLİK": "12130885402", "ADI": "BURAK ATIŞ", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "14.06.1994", "CEP_TEL": "0 (530) 900 14 69"},
+            {"SN": "20", "SİCİLİ": "446760", "TC_KİMLİK": "48580670176", "ADI": "ZAFER GEMİCİ", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "8/30/1994", "CEP_TEL": "0 (531) 375 00 20"},
+            {"SN": "21", "SİCİLİ": "446763", "TC_KİMLİK": "11186189106", "ADI": "FIRAT MIZRAK", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "16.02.1993", "CEP_TEL": "0 (545) 448 25 25"},
+            {"SN": "22", "SİCİLİ": "447257", "TC_KİMLİK": "44473067702", "ADI": "HALİL İBRAHİM GULTEKIN", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "20.01.1995", "CEP_TEL": "0 (501) 014 44 24"},
+            {"SN": "23", "SİCİLİ": "448925", "TC_KİMLİK": "49231532638", "ADI": "YUNUS EMRE YILKIN", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "20.01.1995", "CEP_TEL": "0 (534) 573 67 99"},
+            {"SN": "24", "SİCİLİ": "464955", "TC_KİMLİK": "10070826936", "ADI": "ERKAN ÇELEBİ", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "20.03.1994", "CEP_TEL": "0 (545) 126 00 46"},
+            {"SN": "25", "SİCİLİ": "465910", "TC_KİMLİK": "22576933322", "ADI": "SELMAN YAZICI", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "08.11.1992", "CEP_TEL": "0 (534) 310 09 02"},
+            {"SN": "26", "SİCİLİ": "471640", "TC_KİMLİK": "15047334186", "ADI": "YUSUF ÇOŞKUN", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "18.11.1990", "CEP_TEL": "0 (539) 621 26 07"},
+            {"SN": "27", "SİCİLİ": "471880", "TC_KİMLİK": "17246823980", "ADI": "ABDULKADİR BİLGİN", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "19.01.1996", "CEP_TEL": "0 (541) 355 49 61"},
+            {"SN": "28", "SİCİLİ": "472989", "TC_KİMLİK": "49549754388", "ADI": "HARUN OĞUZHAN ER", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "6/1/1994", "CEP_TEL": "0 (537) 510 94 61"},
+            {"SN": "29", "SİCİLİ": "474501", "TC_KİMLİK": "65527218512", "ADI": "ONUR ERDİN", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "1/11/1994", "CEP_TEL": "0 (534) 213 94 07"},
+            {"SN": "30", "SİCİLİ": "481387", "TC_KİMLİK": "10541111004", "ADI": "VOLKAN TUNCALP", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "7/1/1991", "CEP_TEL": "0 (506) 627 47 00"},
+            {"SN": "31", "SİCİLİ": "497649", "TC_KİMLİK": "22091394998", "ADI": "MESUT YETGİN", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "5/1/1994", "CEP_TEL": "0 (545) 475 91 21"},
+            {"SN": "32", "SİCİLİ": "497849", "TC_KİMLİK": "12782198110", "ADI": "YUNUS SONAR", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "02.02.1994", "CEP_TEL": "0 (534) 737 85 95"},
+            {"SN": "33", "SİCİLİ": "498174", "TC_KİMLİK": "12890292014", "ADI": "HALİL İBRAHİM GÜLİSTAN", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "6/1/1995", "CEP_TEL": "0 (538) 358 82 48"},
+            {"SN": "34", "SİCİLİ": "498186", "TC_KİMLİK": "38398392476", "ADI": "ŞABAN CEYLAN", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "10.08.1994", "CEP_TEL": "0 (545) 922 45 06"},
+            {"SN": "35", "SİCİLİ": "498268", "TC_KİMLİK": "34999958264", "ADI": "MERTCAN ÖZCAN", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "28.06.1996", "CEP_TEL": "0 (538) 524 68 38"},
+            {"SN": "36", "SİCİLİ": "498857", "TC_KİMLİK": "20158776602", "ADI": "OĞUZHAN ŞAKAR", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "13.06.1995", "CEP_TEL": "0 (507) 721 71 00"},
+            {"SN": "37", "SİCİLİ": "500128", "TC_KİMLİK": "39199323942", "ADI": "YUNUS YILMAZ", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "02.02.1994", "CEP_TEL": "0 (506) 092 67 27"},
+            {"SN": "38", "SİCİLİ": "500242", "TC_KİMLİK": "46207577570", "ADI": "AYŞE KOÇKAN", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "15.08.1991", "CEP_TEL": "0 (537) 595 70 00"},
+            {"SN": "39", "SİCİLİ": "500440", "TC_KİMLİK": "16375995476", "ADI": "KERİM COŞKUN", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "10.01.1994", "CEP_TEL": "0 (536) 033 22 09"},
+            {"SN": "40", "SİCİLİ": "500543", "TC_KİMLİK": "16913244684", "ADI": "AHMET KAYAK", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "1/1/1992", "CEP_TEL": "0 (542) 269 63 07"},
+            {"SN": "41", "SİCİLİ": "500570", "TC_KİMLİK": "30151210812", "ADI": "ÜMİT YILMAZ", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "11/18/1994", "CEP_TEL": "0 (507) 174 81 37"},
+            {"SN": "42", "SİCİLİ": "503066", "TC_KİMLİK": "10342244246", "ADI": "NURİ CAN KOYUNCU", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "7/25/1998", "CEP_TEL": "0 (553) 881 81 42"},
+            {"SN": "43", "SİCİLİ": "503920", "TC_KİMLİK": "24244867816", "ADI": "HASAN BAYRAM", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "08.10.1994", "CEP_TEL": "0 (535) 030 10 21"},
+            {"SN": "44", "SİCİLİ": "504572", "TC_KİMLİK": "59197476266", "ADI": "YUSUF TOKAT", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "2/28/1996", "CEP_TEL": "0 (534) 854 93 31"},
+            {"SN": "45", "SİCİLİ": "505512", "TC_KİMLİK": "45259801688", "ADI": "CENGİZ AYDIN", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "14.08.2000", "CEP_TEL": "0 (531) 246 25 28"},
+            {"SN": "46", "SİCİLİ": "511600", "TC_KİMLİK": "35174097938", "ADI": "EMRE TERZİ", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "05.08.1998", "CEP_TEL": "0 (543) 455 92 88"},
+            {"SN": "47", "SİCİLİ": "512557", "TC_KİMLİK": "14417193842", "ADI": "TOLGA TOPÇU", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "26.03.1998", "CEP_TEL": "0 (542) 738 43 73"},
+            {"SN": "48", "SİCİLİ": "512578", "TC_KİMLİK": "16076924386", "ADI": "BARIŞ SATICI", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "22.07.1997", "CEP_TEL": "0 (542) 604 38 42"},
+            {"SN": "49", "SİCİLİ": "512623", "TC_KİMLİK": "32485497068", "ADI": "OSMAN DİLEKCİ", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "20.08.1993", "CEP_TEL": "0 (534) 867 86 93"},
+            {"SN": "50", "SİCİLİ": "513186", "TC_KİMLİK": "12004818666", "ADI": "AHMET YASİN ERASLAN", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "28.03.1994", "CEP_TEL": "0 (506) 114 53 13"},
+            {"SN": "51", "SİCİLİ": "521763", "TC_KİMLİK": "60256072480", "ADI": "TARIK BERKAY ALTIN", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "14.08.1997", "CEP_TEL": "0 (507) 636 80 53"},
+            {"SN": "52", "SİCİLİ": "524108", "TC_KİMLİK": "31625096260", "ADI": "SEMİH VATANSEVER", "RÜTBESİ": "POLİS MEMURU", "DOGUM_TARİHİ": "5/30/1996", "CEP_TEL": "0 (530) 483 81 45"}
+        ];
+
+        function convertToPersonnel(sheetData) {
+            const fullName = sheetData.ADI.trim();
+            const nameParts = fullName.split(' ');
+            const soyad = nameParts[nameParts.length - 1];
+            const ad = nameParts.slice(0, -1).join(' ');
+
+            return {
+                sicil: sheetData.SİCİLİ,
+                ad: ad,
+                soyad: soyad,
+                rutbe: sheetData.RÜTBESİ,
+                tc: sheetData.TC_KİMLİK,
+                dogumTarihi: sheetData.DOGUM_TARİHİ,
+                telefon: sheetData.CEP_TEL
+            };
+        }
+
+        window.uploadData = async function() {
+            const btn = document.getElementById('uploadBtn');
+            const status = document.getElementById('status');
+            
+            btn.disabled = true;
+            status.style.display = 'block';
+            status.className = 'info';
+            status.innerHTML = '⏳ Veriler Firebase\'e yükleniyor...';
+
+            try {
+                const convertedData = {};
+                personnelData.forEach(person => {
+                    const converted = convertToPersonnel(person);
+                    convertedData[converted.sicil] = converted;
+                });
+
+                const personnelRef = ref(database, 'personnel');
+                await set(personnelRef, convertedData);
+
+                status.className = 'success';
+                status.innerHTML = `
+                    ✅ <strong>Başarılı!</strong><br>
+                    ${personnelData.length} personel başarıyla Firebase\'e yüklendi.<br><br>
+                    <strong>Örnek veri:</strong><br>
+                    <pre>${JSON.stringify(convertedData[Object.keys(convertedData)[0]], null, 2)}</pre>
+                `;
+            } catch (error) {
+                status.className = 'error';
+                status.innerHTML = `
+                    ❌ <strong>Hata!</strong><br>
+                    ${error.message}<br><br>
+                    <pre>${error.stack}</pre>
+                `;
+            } finally {
+                btn.disabled = false;
+            }
+        };
+
+        window.testData = async function() {
+            const btn = document.getElementById('testBtn');
+            const status = document.getElementById('status');
+            
+            btn.disabled = true;
+            status.style.display = 'block';
+            status.className = 'info';
+            status.innerHTML = '⏳ Test verisi çekiliyor...';
+
+            try {
+                // İlk personelin sicil numarasını kullan
+                const testSicil = "286855";
+                const personnelRef = ref(database, `personnel/${testSicil}`);
+                const snapshot = await get(personnelRef);
+
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    status.className = 'success';
+                    status.innerHTML = `
+                        ✅ <strong>Başarılı!</strong><br>
+                        Sicil ${testSicil} için veri bulundu:<br><br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    status.className = 'error';
+                    status.innerHTML = `
+                        ⚠️ <strong>Uyarı!</strong><br>
+                        Sicil ${testSicil} için veri bulunamadı.<br>
+                        Lütfen önce "Verileri Firebase'e Yükle" butonuna basın.
+                    `;
+                }
+            } catch (error) {
+                status.className = 'error';
+                status.innerHTML = `
+                    ❌ <strong>Hata!</strong><br>
+                    ${error.message}<br><br>
+                    <pre>${error.stack}</pre>
+                `;
+            } finally {
+                btn.disabled = false;
+            }
+        };
+    </script>
+</body>
+</html>

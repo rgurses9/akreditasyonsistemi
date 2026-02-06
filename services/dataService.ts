@@ -1,4 +1,6 @@
 import { Personnel, User, UserRole, CompletedEvent } from '../types';
+import { database } from './firebase';
+import { ref, get } from 'firebase/database';
 
 // --- MOCK DATABASE (Personnel) ---
 const MOCK_DATABASE: Personnel[] = [
@@ -31,17 +33,32 @@ const MOCK_HISTORY: CompletedEvent[] = [
 // --- PERSONNEL SERVICES ---
 
 export const getPersonnelBySicil = async (sicil: string): Promise<Personnel | undefined> => {
+  // Önce Firebase'den dene
+  if (database) {
+    try {
+      const personnelRef = ref(database, `personnel/${sicil}`);
+      const snapshot = await get(personnelRef);
+
+      if (snapshot.exists()) {
+        return snapshot.val() as Personnel;
+      }
+    } catch (error) {
+      console.warn('Firebase okuma hatası, mock veriye geçiliyor:', error);
+    }
+  }
+
+  // Firebase başarısız olursa veya bulunamazsa mock veriden dene
   return new Promise((resolve) => {
     setTimeout(() => {
       const person = MOCK_DATABASE.find(p => p.sicil === sicil);
       resolve(person);
-    }, 200); // Faster response for auto-add feel
+    }, 200);
   });
 };
 
 export const getExcelBlob = (data: Personnel[]): Blob => {
   const headers = ['Sıra', 'Ad Soyad', 'Rütbe', 'T.C. Kimlik No', 'Doğum Tarihi', 'Telefon'];
-  
+
   let tableContent = '<table><thead><tr>';
   headers.forEach(h => tableContent += `<th>${h}</th>`);
   tableContent += '</tr></thead><tbody>';
@@ -59,8 +76,8 @@ export const getExcelBlob = (data: Personnel[]): Blob => {
   tableContent += '</tbody></table>';
 
   return new Blob([
-    '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Personel Listesi</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--><meta charset="utf-8"></head><body>' 
-     + tableContent + 
+    '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Personel Listesi</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--><meta charset="utf-8"></head><body>'
+    + tableContent +
     '</body></html>'
   ], { type: 'application/vnd.ms-excel' });
 };
@@ -78,7 +95,7 @@ export const downloadAsExcel = (data: Personnel[], eventName: string) => {
 
 export const formatForWhatsApp = (data: Personnel[], eventName: string, dateStr?: string): string => {
   const dateDisplay = dateStr || new Date().toLocaleString('tr-TR');
-  
+
   let text = `*👮 GÖREV LİSTESİ*\n`;
   text += `*Müsabaka:* ${eventName}\n`;
   text += `*Tarih/Saat:* ${dateDisplay}\n`;
@@ -87,7 +104,7 @@ export const formatForWhatsApp = (data: Personnel[], eventName: string, dateStr?
   data.forEach((p, index) => {
     text += `${index + 1}. ${p.rutbe} ${p.ad} ${p.soyad}\n`;
   });
-  
+
   text += `\n*Toplam Personel:* ${data.length}`;
   return encodeURIComponent(text);
 };
