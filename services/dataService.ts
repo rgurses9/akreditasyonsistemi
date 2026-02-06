@@ -15,30 +15,124 @@ const MOCK_USERS: User[] = [
 // Test verileri kaldırıldı
 const MOCK_HISTORY: CompletedEvent[] = [];
 
+// Google Sheets bilgileri
+const SHEET_ID = '1J6SFLRCGk2-iBzi7TTjthyNzN4dWHH8A';
+const SHEET_GID = '1490010137';
+const SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}`;
+
+// Cache için
+let personnelCache: Personnel[] = [];
+let lastCacheTime = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 dakika
+
+/**
+ * Google Sheets'ten personel verilerini çeker ve cache'ler
+ */
+async function fetchPersonnelFromSheets(): Promise<Personnel[]> {
+  const now = Date.now();
+
+  // Cache'de varsa ve güncel ise cache'den dön
+  if (personnelCache.length > 0 && (now - lastCacheTime) < CACHE_DURATION) {
+    console.log(`📦 Cache'den ${personnelCache.length} personel dönülüyor`);
+    return personnelCache;
+  }
+
+  try {
+    console.log('📥 Google Sheets\'ten veri çekiliyor...');
+    const response = await fetch(SHEET_CSV_URL);
+
+    if (!response.ok) {
+      throw new Error(`Google Sheets erişim hatası: ${response.status}`);
+    }
+
+    const csvText = await response.text();
+    const lines = csvText.trim().split('\n');
+    const data: Personnel[] = [];
+
+    // CSV parse et (başlık satırını atla)
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',');
+
+      if (values.length >= 7 && values[1]?.trim()) {
+        const fullName = values[3]?.trim() || '';
+        const nameParts = fullName.split(' ');
+        const soyad = nameParts[nameParts.length - 1];
+        const ad = nameParts.slice(0, -1).join(' ');
+
+        data.push({
+          sicil: values[1].trim(),
+          ad: ad,
+          soyad: soyad,
+          rutbe: values[4]?.trim() || '',
+          tc: values[2]?.trim() || '',
+          dogumTarihi: values[5]?.trim() || '',
+          telefon: values[6]?.trim() || ''
+        });
+      }
+    }
+
+    // Cache'i güncelle
+    personnelCache = data;
+    lastCacheTime = now;
+
+    console.log(`✅ Google Sheets'ten ${data.length} personel çekildi ve cache'lendi`);
+    return data;
+  } catch (error) {
+    console.error('❌ Google Sheets okuma hatası:', error);
+
+    // Hata durumunda eski cache'i dön
+    if (personnelCache.length > 0) {
+      console.warn('⚠️ Eski cache verisi kullanılıyor');
+      return personnelCache;
+    }
+
+    throw error;
+  }
+}
+
 // --- PERSONNEL SERVICES ---
 
 export const getPersonnelBySicil = async (sicil: string): Promise<Personnel | undefined> => {
-  // Önce Firebase'den dene
-  if (database) {
-    try {
-      const personnelRef = ref(database, `personnel/${sicil}`);
-      const snapshot = await get(personnelRef);
+  try {
+    // Google Sheets'ten tüm personeli çek (cache'lenmiş)
+    const allPersonnel = await fetchPersonnelFromSheets();
 
-      if (snapshot.exists()) {
-        return snapshot.val() as Personnel;
-      }
-    } catch (error) {
-      console.warn('Firebase okuma hatası, mock veriye geçiliyor:', error);
+    // Sicil numarasına göre ara
+    const person = allPersonnel.find(p => p.sicil === sicil);
+
+    if (person) {
+      console.log(`✅ Personel bulundu: ${person.ad} ${person.soyad} (${person.rutbe})`);
+      return person;
     }
-  }
 
-  // Firebase başarısız olursa veya bulunamazsa mock veriden dene
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const person = MOCK_DATABASE.find(p => p.sicil === sicil);
-      resolve(person);
-    }, 200);
-  });
+    console.warn(`⚠️ Sicil ${sicil} Google Sheets'te bulunamadı`);
+    return undefined;
+  } catch (error) {
+    console.error('🔥 Personel arama hatası:', error);
+
+    // Hata durumunda Firebase'i dene
+    console.log('🔄 Firebase deneniyor...');
+    if (database) {
+      try {
+        const personnelRef = ref(database, `personnel/${sicil}`);
+        const snapshot = await get(personnelRef);
+
+        if (snapshot.exists()) {
+          console.log('✅ Firebase\'den veri bulundu');
+          return snapshot.val() as Personnel;
+        }
+      } catch (fbError) {
+        console.error('❌ Firebase hatası:', fbError);
+      }
+    }
+
+    // Son çare: mock veri
+    const person = MOCK_DATABASE.find(p => p.sicil === sicil);
+    if (person) {
+      console.log('✅ Mock veriden bulundu');
+    }
+    return person;
+  }
 };
 
 export const getExcelBlob = (data: Personnel[]): Blob => {
