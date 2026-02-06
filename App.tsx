@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Shield, UserPlus, FileDown, CheckCircle, Users, Activity, FileText, Lock, LogOut, MessageCircle, Trash2, History, ArrowLeft, Share2, Home, Save, BarChart3, UserCog, Send } from 'lucide-react';
+import { Shield, UserPlus, FileDown, CheckCircle, Users, Activity, FileText, Lock, LogOut, Trash2, History, ArrowLeft, Share2, Home, Save, BarChart3, UserCog, Send, RefreshCw } from 'lucide-react';
 import { Personnel, EventData, AppStep, User, UserRole, CompletedEvent } from './types';
-import { getPersonnelBySicil, downloadAsExcel, loginUser, formatForWhatsApp, saveCompletedEvent, deleteEvent, getHistory, getExcelBlob, getPersonnelStatistics, createNewUser, getAllUsers, deleteUser, getPersonnelEventHistory, getAllPersonnel } from './services/dataService';
-import { generateDutyReport } from './services/geminiService';
+import { getPersonnelBySicil, downloadAsExcel, loginUser, saveCompletedEvent, deleteEvent, getHistory, getExcelBlob, getPersonnelStatistics, createNewUser, getAllUsers, deleteUser, getPersonnelEventHistory, getAllPersonnel, updateUserRole, downloadUsersAsExcel } from './services/dataService';
 import './services/firebase'; // Initialize Firebase
 
 export default function App() {
@@ -13,8 +12,6 @@ export default function App() {
   const [currentSicil, setCurrentSicil] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [geminiReport, setGeminiReport] = useState<string>('');
-  const [generatingReport, setGeneratingReport] = useState(false);
   const [pastEvents, setPastEvents] = useState<CompletedEvent[]>([]);
   const [stats, setStats] = useState<{ personnel: Personnel, count: number }[]>([]);
 
@@ -37,7 +34,72 @@ export default function App() {
   // Refs for focus management
   const sicilInputRef = useRef<HTMLInputElement>(null);
 
+  // Handlers
+  const loadInitialData = async (user: User) => {
+    setLoading(true);
+    try {
+      const history = await getHistory();
+      setPastEvents(history);
+
+      if (user.role === UserRole.ADMIN) {
+        const allUsers = await getAllUsers();
+        setUsers(allUsers);
+      }
+    } catch (e) {
+      console.error("Initial data load failed", e);
+    }
+    setLoading(false);
+  };
+
   // Effects
+  useEffect(() => {
+    // Restore session
+    const savedUser = localStorage.getItem('currentUser');
+    const savedEvent = localStorage.getItem('activeEvent');
+    const savedPersonnel = localStorage.getItem('addedPersonnel');
+
+    if (savedUser) {
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        setCurrentUser(parsedUser);
+        setStep(AppStep.SETUP);
+
+        loadInitialData(parsedUser);
+
+        if (savedEvent && savedPersonnel) {
+          setEventData(JSON.parse(savedEvent));
+          setAddedPersonnel(JSON.parse(savedPersonnel));
+          setStep(AppStep.ENTRY);
+
+          // Arama listesini de geri yükle
+          getAllPersonnel().then(setAllPersonnelData);
+        }
+      } catch (e) {
+        console.error("Session restore failed", e);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('activeEvent');
+      localStorage.removeItem('addedPersonnel');
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (step === AppStep.ENTRY) {
+      localStorage.setItem('activeEvent', JSON.stringify(eventData));
+      localStorage.setItem('addedPersonnel', JSON.stringify(addedPersonnel));
+    } else if (step === AppStep.COMPLETE || step === AppStep.SETUP) {
+      localStorage.removeItem('activeEvent');
+      localStorage.removeItem('addedPersonnel');
+    }
+  }, [step, eventData, addedPersonnel]);
+
   useEffect(() => {
     if (step === AppStep.ENTRY && sicilInputRef.current) {
       sicilInputRef.current.focus();
@@ -67,6 +129,7 @@ export default function App() {
     if (user) {
       setCurrentUser(user);
       setStep(AppStep.SETUP);
+      loadInitialData(user);
     } else {
       setAuthError('Kullanıcı adı veya şifre hatalı.');
     }
@@ -96,6 +159,7 @@ export default function App() {
         setLoading(true); // Görsel geçiş için kısa bir loading
         setCurrentUser(user);
         setStep(AppStep.SETUP);
+        loadInitialData(user);
         setAuthError('');
         setLoading(false);
       }
@@ -109,7 +173,6 @@ export default function App() {
     setStep(AppStep.LOGIN);
     setAddedPersonnel([]);
     setEventData({ eventName: '', requiredCount: 0 });
-    setGeminiReport('');
     setAuthInput({ username: '', password: '', fullName: '', role: UserRole.USER });
   };
 
@@ -177,7 +240,7 @@ export default function App() {
 
   const handleWhatsAppExcelShare = async () => {
     const blob = getExcelBlob(addedPersonnel);
-    const file = new File([blob], `${eventData.eventName}_Listesi.xls`, { type: 'application/vnd.ms-excel' });
+    const file = new File([blob], `${eventData.eventName} ÖZEL GÜVENLİK ŞUBE MÜDÜRLÜĞÜ.xls`, { type: 'application/vnd.ms-excel' });
 
     // Try Web Share API (Mobile native share)
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -197,12 +260,6 @@ export default function App() {
       window.open('https://web.whatsapp.com', '_blank');
     }
   };
-
-  const handleWhatsAppTextShare = () => {
-    const text = formatForWhatsApp(addedPersonnel, eventData.eventName, eventData.creationDate);
-    window.open(`https://wa.me/?text=${text}`, '_blank');
-  };
-
   const handleWhatsAppToAdmin = async () => {
     // 1. Download file for the user to attach
     downloadAsExcel(addedPersonnel, eventData.eventName);
@@ -215,14 +272,6 @@ export default function App() {
     const phoneNumber = "905383819261";
 
     window.open(`https://wa.me/${phoneNumber}`, '_blank');
-  };
-
-  const handleGenerateReport = async () => {
-    if (currentUser?.role !== UserRole.ADMIN) return;
-    setGeneratingReport(true);
-    const report = await generateDutyReport(addedPersonnel, eventData.eventName);
-    setGeminiReport(report);
-    setGeneratingReport(false);
   };
 
   const loadHistory = async () => {
@@ -250,6 +299,20 @@ export default function App() {
     }
   };
 
+  const handleToggleUserRole = async (user: User) => {
+    const newRole = user.role === UserRole.ADMIN ? UserRole.USER : UserRole.ADMIN;
+    if (window.confirm(`${user.username} kullanıcısının yetkisini '${newRole}' olarak değiştirmek istediğinize emin misiniz?`)) {
+      const success = await updateUserRole(user.username, newRole);
+      if (success) {
+        loadUsers(); // Refresh list
+      }
+    }
+  };
+
+  const handleDownloadUsersExcel = () => {
+    downloadUsersAsExcel(users);
+  };
+
   const loadPersonnelDetail = async (personnel: Personnel) => {
     setSelectedPersonnel(personnel);
     const history = await getPersonnelEventHistory(personnel.sicil);
@@ -261,7 +324,6 @@ export default function App() {
     setStep(AppStep.SETUP);
     setAddedPersonnel([]);
     setEventData({ eventName: '', requiredCount: 0 });
-    setGeminiReport('');
   };
 
   // Render Helpers
@@ -612,51 +674,8 @@ export default function App() {
               >
                 <Share2 className="w-4 h-4" /> Excel Paylaş
               </button>
-
-              <button
-                onClick={handleWhatsAppTextShare}
-                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm transition-colors"
-              >
-                <MessageCircle className="w-4 h-4" /> Yazı Paylaş
-              </button>
-
-              {currentUser?.role === UserRole.ADMIN && (
-                <button
-                  onClick={handleGenerateReport}
-                  disabled={generatingReport}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${generatingReport
-                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                    : 'bg-purple-600 hover:bg-purple-700 text-white'
-                    }`}
-                >
-                  {generatingReport ? (
-                    <>Analiz...</>
-                  ) : (
-                    <><FileText className="w-4 h-4" /> AI Rapor</>
-                  )}
-                </button>
-              )}
             </div>
           </div>
-
-          {geminiReport && (
-            <div className="mb-8 p-6 bg-purple-50 rounded-xl border border-purple-100 relative">
-              <button
-                onClick={() => setGeminiReport('')}
-                className="absolute top-4 right-4 text-purple-400 hover:text-purple-700 p-2 hover:bg-purple-100 rounded-full transition-colors"
-                title="Raporu Kapat"
-              >
-                <Trash2 className="w-5 h-5" />
-              </button>
-              <h4 className="font-bold text-purple-900 mb-3 flex items-center gap-2">
-                <span className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></span>
-                Görev Analiz Raporu
-              </h4>
-              <div className="prose prose-sm text-purple-900 whitespace-pre-line">
-                {geminiReport}
-              </div>
-            </div>
-          )}
 
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
@@ -931,7 +950,7 @@ export default function App() {
             </div>
 
             {createUserStatus === 'error' && (
-              <p className="text-red-500 text-sm text-center">Kullanıcı zaten mevcut veya bir hata oluştu.</p>
+              <p className="text-red-500 text-sm text-center">İşlem sırasında bir hata oluştu. Lütfen tekrar deneyiniz.</p>
             )}
             {createUserStatus === 'success' && (
               <p className="text-green-600 text-sm text-center font-semibold">Kullanıcı başarıyla oluşturuldu!</p>
@@ -1036,14 +1055,23 @@ export default function App() {
 
   const renderUserManagement = () => (
     <div className="max-w-4xl mx-auto mt-10">
-      <div className="mb-6 flex items-center gap-4">
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setStep(AppStep.SETUP)}
+            className="bg-white p-2 rounded-full shadow hover:bg-gray-50 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-600" />
+          </button>
+          <h2 className="text-2xl font-bold text-gray-800">Kullanıcı Yönetimi Listesi</h2>
+        </div>
         <button
-          onClick={() => setStep(AppStep.USER_CREATION)}
-          className="bg-white p-2 rounded-full shadow hover:bg-gray-50 transition-colors"
+          onClick={handleDownloadUsersExcel}
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm transition-colors text-sm font-medium"
         >
-          <ArrowLeft className="w-5 h-5 text-gray-600" />
+          <FileDown className="w-4 h-4" />
+          Excel indir
         </button>
-        <h2 className="text-2xl font-bold text-gray-800">Kullanıcı Yönetimi Listesi</h2>
       </div>
 
       <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
@@ -1071,15 +1099,26 @@ export default function App() {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    {user.username !== 'admin' && user.username !== currentUser?.username && (
-                      <button
-                        onClick={() => handleDeleteUser(user.username)}
-                        className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-full transition-colors"
-                        title="Kullanıcıyı Sil"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {user.username !== 'admin' && user.username !== currentUser?.username && (
+                        <>
+                          <button
+                            onClick={() => handleToggleUserRole(user)}
+                            className="p-2 text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
+                            title="Yetkiyi Değiştir"
+                          >
+                            <RefreshCw className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(user.username)}
+                            className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                            title="Kullanıcıyı Sil"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

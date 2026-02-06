@@ -170,7 +170,41 @@ export const downloadAsExcel = (data: Personnel[], eventName: string) => {
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${eventName} Listesi.xls`;
+  a.download = `${eventName} ÖZEL GÜVENLİK ŞUBE MÜDÜRLÜĞÜ.xls`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+};
+
+export const getUsersExcelBlob = (data: User[]): Blob => {
+  const headers = ['Kullanıcı Adı', 'Tam Ad', 'Yetki'];
+
+  let tableContent = '<table><thead><tr>';
+  headers.forEach(h => tableContent += `<th>${h}</th>`);
+  tableContent += '</tr></thead><tbody>';
+
+  data.forEach((u) => {
+    tableContent += '<tr>';
+    tableContent += `<td>${u.username}</td>`;
+    tableContent += `<td>${u.fullName || '-'}</td>`;
+    tableContent += `<td>${u.role}</td>`;
+    tableContent += '</tr>';
+  });
+  tableContent += '</tbody></table>';
+
+  return new Blob([
+    '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Kullanıcı Listesi</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--><meta charset="utf-8"></head><body>'
+    + tableContent +
+    '</body></html>'
+  ], { type: 'application/vnd.ms-excel' });
+};
+
+export const downloadUsersAsExcel = (data: User[]) => {
+  const blob = getUsersExcelBlob(data);
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Kullanıcı_Listesi.xls`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -238,6 +272,11 @@ export const deleteEvent = async (eventId: string): Promise<boolean> => {
   return false;
 };
 
+const loadHistoryFromCache = (): CompletedEvent[] => {
+  const cached = localStorage.getItem('history_cache');
+  return cached ? JSON.parse(cached) : [...MOCK_HISTORY];
+};
+
 export const getHistory = async (): Promise<CompletedEvent[]> => {
   // Firebase'den çek
   if (database) {
@@ -251,30 +290,30 @@ export const getHistory = async (): Promise<CompletedEvent[]> => {
 
         // Tarihe göre sırala (en yeni önce)
         events.sort((a, b) => {
-          const dateA = new Date(a.date.split(' ')[0].split('.').reverse().join('-'));
-          const dateB = new Date(b.date.split(' ')[0].split('.').reverse().join('-'));
-          return dateB.getTime() - dateA.getTime();
+          try {
+            const dateA = new Date(a.date.split(' ')[0].split('.').reverse().join('-'));
+            const dateB = new Date(b.date.split(' ')[0].split('.').reverse().join('-'));
+            return dateB.getTime() - dateA.getTime();
+          } catch (e) { return 0; }
         });
 
-        // Memory'yi de güncelle
+        // Memory ve Cache güncelle
         MOCK_HISTORY.length = 0;
         MOCK_HISTORY.push(...events);
+        localStorage.setItem('history_cache', JSON.stringify(events));
 
         console.log(`✅ Firebase'den ${events.length} etkinlik yüklendi`);
         return events;
       }
 
-      console.log('ℹ️ Firebase\'de henüz etkinlik yok');
-      return [];
+      return loadHistoryFromCache();
     } catch (error) {
       console.error('❌ Firebase okuma hatası:', error);
-      // Hata durumunda memory'deki veriyi dön
-      return [...MOCK_HISTORY];
+      return loadHistoryFromCache();
     }
   }
 
-  // Firebase yoksa memory'den dön
-  return [...MOCK_HISTORY];
+  return loadHistoryFromCache();
 };
 
 export const getPersonnelStatistics = async (): Promise<{ personnel: Personnel, count: number }[]> => {
@@ -301,6 +340,11 @@ export const getPersonnelStatistics = async (): Promise<{ personnel: Personnel, 
 
 // --- AUTH SERVICES ---
 
+const loadUsersFromCache = (): User[] => {
+  const cached = localStorage.getItem('users_cache');
+  return cached ? JSON.parse(cached) : [...MOCK_USERS];
+};
+
 export const getAllUsers = async (): Promise<User[]> => {
   if (database) {
     try {
@@ -309,16 +353,17 @@ export const getAllUsers = async (): Promise<User[]> => {
 
       if (snapshot.exists()) {
         const usersData = snapshot.val();
-        return Object.values(usersData);
+        const users = Object.values(usersData) as User[];
+        localStorage.setItem('users_cache', JSON.stringify(users));
+        return users;
       }
-      // Firebase boşsa varsayılan kullanıcıları dön
-      return [...MOCK_USERS];
+      return loadUsersFromCache();
     } catch (error) {
       console.error('❌ Kullanıcı listesi alma hatası:', error);
-      return [...MOCK_USERS];
+      return loadUsersFromCache();
     }
   }
-  return [...MOCK_USERS];
+  return loadUsersFromCache();
 };
 
 export const deleteUser = async (username: string): Promise<boolean> => {
@@ -371,32 +416,50 @@ export const loginUser = async (username: string, password: string): Promise<Use
 };
 
 export const createNewUser = async (newUser: User): Promise<boolean> => {
-  // Memory'ye ekle
-  if (!MOCK_USERS.some(u => u.username === newUser.username)) {
-    MOCK_USERS.push(newUser);
-  }
-
-  // Firebase'e kaydet
+  // Firebase'e kaydet (Varsa güncelle, yoksa oluştur)
   if (database) {
     try {
-      // Username key olarak kullanılıyor
       const userRef = ref(database, `users/${newUser.username}`);
+      await set(userRef, newUser);
+      console.log(`✅ Kullanıcı oluşturuldu/güncellendi: ${newUser.username}`);
 
-      // Önce var mı kontrol et
-      const snapshot = await get(userRef);
-      if (snapshot.exists()) {
-        return false; // Kullanıcı zaten var
+      // Memory'deki listeyi de güncelle
+      const index = MOCK_USERS.findIndex(u => u.username === newUser.username);
+      if (index !== -1) {
+        MOCK_USERS[index] = newUser;
+      } else {
+        MOCK_USERS.push(newUser);
       }
 
-      await set(userRef, newUser);
-      console.log(`✅ Yeni kullanıcı oluşturuldu: ${newUser.username}`);
       return true;
     } catch (error) {
-      console.error('❌ Kullanıcı oluşturma hatası:', error);
+      console.error('❌ Kullanıcı işlemi hatası:', error);
       return false;
     }
   }
 
+  return true;
+};
+
+export const updateUserRole = async (username: string, newRole: UserRole): Promise<boolean> => {
+  // Memory'de güncelle
+  const user = MOCK_USERS.find(u => u.username === username);
+  if (user) {
+    user.role = newRole;
+  }
+
+  // Firebase'de güncelle
+  if (database) {
+    try {
+      const userRef = ref(database, `users/${username}/role`);
+      await set(userRef, newRole);
+      console.log(`✅ Kullanıcı yetkisi güncellendi: ${username} -> ${newRole}`);
+      return true;
+    } catch (error) {
+      console.error('❌ Yetki güncelleme hatası:', error);
+      return false;
+    }
+  }
   return true;
 };
 
