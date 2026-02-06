@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Shield, UserPlus, FileDown, CheckCircle, Users, Activity, FileText, Lock, LogOut, MessageCircle, Trash2, History, ArrowLeft, Share2, Home, Save, BarChart3, UserCog, Send } from 'lucide-react';
 import { Personnel, EventData, AppStep, User, UserRole, CompletedEvent } from './types';
-import { getPersonnelBySicil, downloadAsExcel, loginUser, formatForWhatsApp, saveCompletedEvent, deleteEvent, getHistory, getExcelBlob, getPersonnelStatistics, createNewUser, getAllUsers, deleteUser, getPersonnelEventHistory } from './services/dataService';
+import { getPersonnelBySicil, downloadAsExcel, loginUser, formatForWhatsApp, saveCompletedEvent, deleteEvent, getHistory, getExcelBlob, getPersonnelStatistics, createNewUser, getAllUsers, deleteUser, getPersonnelEventHistory, getAllPersonnel } from './services/dataService';
 import { generateDutyReport } from './services/geminiService';
 import './services/firebase'; // Initialize Firebase
 
@@ -31,6 +31,8 @@ export default function App() {
   const [users, setUsers] = useState<User[]>([]);
   const [selectedPersonnel, setSelectedPersonnel] = useState<Personnel | null>(null);
   const [personnelHistory, setPersonnelHistory] = useState<CompletedEvent[]>([]);
+  const [allPersonnelData, setAllPersonnelData] = useState<Personnel[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Refs for focus management
   const sicilInputRef = useRef<HTMLInputElement>(null);
@@ -43,12 +45,16 @@ export default function App() {
   }, [step, addedPersonnel]);
 
   // Handlers
-  const handleStart = (e: React.FormEvent) => {
+  const handleStart = async (e: React.FormEvent) => {
     e.preventDefault();
     if (eventData.eventName && eventData.requiredCount > 0) {
       // Set creation date with time
       setEventData(prev => ({ ...prev, creationDate: new Date().toLocaleString('tr-TR') }));
       setStep(AppStep.ENTRY);
+
+      // Tüm listeyi çek (dropdown için)
+      const allP = await getAllPersonnel();
+      setAllPersonnelData(allP);
     }
   };
 
@@ -102,33 +108,21 @@ export default function App() {
     }
   };
 
-  const handleSicilSearch = async (val: string) => {
-    setCurrentSicil(val);
+  const selectPersonnel = (person: Personnel) => {
+    // Check duplicate
+    if (addedPersonnel.some(p => p.sicil === person.sicil)) {
+      setError('Bu personel zaten ekli: ' + person.ad + ' ' + person.soyad);
+      return;
+    }
+
+    // AUTO ADD
+    const newList = [...addedPersonnel, person];
+    setAddedPersonnel(newList);
+    setSearchTerm(''); // Clear input
     setError('');
 
-    // Auto-add logic: if length is sufficient, try to find and add immediately
-    if (val.length >= 5) {
-      setLoading(true);
-      const person = await getPersonnelBySicil(val);
-      setLoading(false);
-
-      if (person) {
-        // Check duplicate
-        if (addedPersonnel.some(p => p.sicil === person.sicil)) {
-          setError('Bu personel zaten ekli.');
-        } else {
-          // AUTO ADD
-          const newList = [...addedPersonnel, person];
-          setAddedPersonnel(newList);
-          setCurrentSicil(''); // Clear input
-
-          if (newList.length >= eventData.requiredCount) {
-            setStep(AppStep.COMPLETE);
-          }
-        }
-      } else {
-        setError('Personel bulunamadı.');
-      }
+    if (newList.length >= eventData.requiredCount) {
+      setStep(AppStep.COMPLETE);
     }
   };
 
@@ -404,24 +398,56 @@ export default function App() {
           </h2>
 
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Sicil No Giriniz</label>
-            <input
-              ref={sicilInputRef}
-              type="text"
-              value={currentSicil}
-              onChange={(e) => handleSicilSearch(e.target.value)}
-              className="w-full text-2xl tracking-widest font-mono p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-              placeholder="12345"
-              maxLength={10}
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-2">Personel Seç (Ad Soyad)</label>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="İsim arayın..."
+                className="w-full text-lg p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                autoFocus
+              />
+              {searchTerm.length > 0 && (
+                <div className="absolute z-10 w-full bg-white border border-gray-200 mt-1 max-h-60 overflow-y-auto rounded-lg shadow-lg">
+                  {allPersonnelData
+                    .filter(p => !addedPersonnel.some(added => added.sicil === p.sicil))
+                    .filter(p =>
+                      p.ad.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      p.soyad.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      p.sicil.includes(searchTerm)
+                    )
+                    .map(p => (
+                      <div
+                        key={p.sicil}
+                        className="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-50 last:border-0 flex justify-between items-center"
+                        onClick={() => selectPersonnel(p)}
+                      >
+                        <div>
+                          <div className="font-bold text-gray-800">{p.ad} {p.soyad}</div>
+                          <div className="text-xs text-gray-500">{p.sicil}</div>
+                        </div>
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">{p.rutbe}</span>
+                      </div>
+                    ))
+                  }
+                  {allPersonnelData.length > 0 && allPersonnelData.filter(p =>
+                    !addedPersonnel.some(added => added.sicil === p.sicil) &&
+                    (p.ad.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      p.soyad.toLowerCase().includes(searchTerm.toLowerCase()))
+                  ).length === 0 && (
+                      <div className="p-3 text-gray-500 text-sm text-center">Sonuç bulunamadı</div>
+                    )}
+                </div>
+              )}
+            </div>
             <div className="h-6 mt-2">
-              {loading && <p className="text-sm text-blue-500 animate-pulse">Aranıyor ve Ekleniyor...</p>}
               {error && <p className="text-sm text-red-500">{error}</p>}
             </div>
           </div>
 
           <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 text-sm text-blue-800">
-            <p>Sicil numarası doğru girildiğinde personel otomatik olarak listeye eklenir.</p>
+            <p>Listeden personeli seçerek ekleyebilirsiniz.</p>
           </div>
         </div>
       </div>

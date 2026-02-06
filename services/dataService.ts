@@ -135,6 +135,10 @@ export const getPersonnelBySicil = async (sicil: string): Promise<Personnel | un
   }
 };
 
+export const getAllPersonnel = async (): Promise<Personnel[]> => {
+  return await fetchPersonnelFromSheets();
+};
+
 export const getExcelBlob = (data: Personnel[]): Blob => {
   const headers = ['Sıra', 'Ad Soyad', 'Rütbe', 'T.C. Kimlik No', 'Doğum Tarihi', 'Telefon'];
 
