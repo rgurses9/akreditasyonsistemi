@@ -47,8 +47,8 @@ export default function App() {
     }
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogin = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setLoading(true);
     setAuthError('');
 
@@ -61,6 +61,17 @@ export default function App() {
     }
 
     setLoading(false);
+  };
+
+  // Otomatik giriş kontrolü
+  const checkAutoLogin = async (username: string, password: string) => {
+    if (username && password) {
+      const user = await loginUser(username, password);
+      if (user) {
+        // Otomatik giriş yap
+        handleLogin();
+      }
+    }
   };
 
   const handleLogout = () => {
@@ -236,7 +247,11 @@ export default function App() {
                 required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                 value={authInput.username}
-                onChange={(e) => setAuthInput({ ...authInput, username: e.target.value })}
+                onChange={(e) => {
+                  const newUsername = e.target.value;
+                  setAuthInput({ ...authInput, username: newUsername });
+                  checkAutoLogin(newUsername, authInput.password);
+                }}
               />
             </div>
 
@@ -247,7 +262,11 @@ export default function App() {
                 required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                 value={authInput.password}
-                onChange={(e) => setAuthInput({ ...authInput, password: e.target.value })}
+                onChange={(e) => {
+                  const newPassword = e.target.value;
+                  setAuthInput({ ...authInput, password: newPassword });
+                  checkAutoLogin(authInput.username, newPassword);
+                }}
               />
             </div>
 
