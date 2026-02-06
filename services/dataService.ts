@@ -194,6 +194,20 @@ export const saveCompletedEvent = (eventData: CompletedEvent) => {
   MOCK_HISTORY.unshift(eventData); // Add to beginning
 };
 
+export const deleteEvent = (eventId: string): boolean => {
+  const initialLength = MOCK_HISTORY.length;
+  const index = MOCK_HISTORY.findIndex(event => event.id === eventId);
+
+  if (index !== -1) {
+    MOCK_HISTORY.splice(index, 1);
+    console.log(`✅ Etkinlik silindi: ${eventId}`);
+    return true;
+  }
+
+  console.warn(`⚠️ Etkinlik bulunamadı: ${eventId}`);
+  return false;
+};
+
 export const getHistory = async (): Promise<CompletedEvent[]> => {
   return new Promise((resolve) => {
     setTimeout(() => {

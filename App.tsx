@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Shield, UserPlus, FileDown, CheckCircle, Users, Activity, FileText, Lock, LogOut, MessageCircle, Trash2, History, ArrowLeft, Share2, Home, Save, BarChart3, UserCog, Send } from 'lucide-react';
 import { Personnel, EventData, AppStep, User, UserRole, CompletedEvent } from './types';
-import { getPersonnelBySicil, downloadAsExcel, loginUser, formatForWhatsApp, saveCompletedEvent, getHistory, getExcelBlob, getPersonnelStatistics, createNewUser } from './services/dataService';
+import { getPersonnelBySicil, downloadAsExcel, loginUser, formatForWhatsApp, saveCompletedEvent, deleteEvent, getHistory, getExcelBlob, getPersonnelStatistics, createNewUser } from './services/dataService';
 import { generateDutyReport } from './services/geminiService';
 import './services/firebase'; // Initialize Firebase
 
@@ -268,14 +268,6 @@ export default function App() {
               )}
             </button>
           </form>
-
-          <div className="mt-6 pt-4 border-t border-gray-100 text-center">
-            <p className="text-xs text-gray-500 font-semibold mb-2">Demo Giriş Bilgileri:</p>
-            <div className="text-xs text-gray-600 bg-gray-100 p-2 rounded">
-              <p>Yönetici: <strong>admin</strong> / <strong>123</strong></p>
-              <p>Personel: <strong>user</strong> / <strong>123</strong></p>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -381,10 +373,6 @@ export default function App() {
           <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 text-sm text-blue-800">
             <p>Sicil numarası doğru girildiğinde personel otomatik olarak listeye eklenir.</p>
           </div>
-        </div>
-
-        <div className="bg-gray-100 p-4 rounded-lg text-xs text-gray-500">
-          <p><strong>Not:</strong> Demo verileri için sicil olarak <code>12345, 12346, 12347, 12348, 12349, 11111, 22222</code> deneyiniz.</p>
         </div>
       </div>
 
@@ -550,8 +538,8 @@ export default function App() {
                   onClick={handleGenerateReport}
                   disabled={generatingReport}
                   className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${generatingReport
-                      ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                      : 'bg-purple-600 hover:bg-purple-700 text-white'
+                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    : 'bg-purple-600 hover:bg-purple-700 text-white'
                     }`}
                 >
                   {generatingReport ? (
@@ -596,8 +584,8 @@ export default function App() {
                     <td className="px-6 py-3 font-semibold text-gray-800">{p.ad} {p.soyad}</td>
                     <td className="px-6 py-3">
                       <span className={`px-2 py-1 rounded text-xs font-semibold ${p.rutbe.includes('Müdür') ? 'bg-red-100 text-red-800' :
-                          p.rutbe.includes('Komiser') ? 'bg-orange-100 text-orange-800' :
-                            'bg-blue-100 text-blue-800'
+                        p.rutbe.includes('Komiser') ? 'bg-orange-100 text-orange-800' :
+                          'bg-blue-100 text-blue-800'
                         }`}>
                         {p.rutbe}
                       </span>
@@ -629,60 +617,80 @@ export default function App() {
     </div>
   );
 
-  const renderAdminHistory = () => (
-    <div className="max-w-4xl mx-auto mt-10">
-      <div className="mb-6 flex items-center gap-4">
-        <button
-          onClick={() => setStep(AppStep.SETUP)}
-          className="bg-white p-2 rounded-full shadow hover:bg-gray-50 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5 text-gray-600" />
-        </button>
-        <h2 className="text-2xl font-bold text-gray-800">Geçmiş / Pasif Müsabakalar</h2>
-      </div>
+  const renderAdminHistory = () => {
+    const handleDeleteEvent = async (eventId: string, eventName: string) => {
+      if (window.confirm(`"${eventName}" etkinliğini silmek istediğinizden emin misiniz?`)) {
+        const success = deleteEvent(eventId);
+        if (success) {
+          // Liste güncelle
+          const updatedHistory = await getHistory();
+          setPastEvents(updatedHistory);
+        }
+      }
+    };
 
-      <div className="grid gap-4">
-        {pastEvents.length === 0 ? (
-          <div className="bg-white p-8 rounded-xl shadow text-center text-gray-500">
-            <History className="w-12 h-12 mx-auto mb-3 opacity-20" />
-            <p>Henüz kaydedilmiş bir müsabaka yok.</p>
-          </div>
-        ) : (
-          pastEvents.map((event) => (
-            <div key={event.id} className="bg-white p-6 rounded-xl shadow border border-gray-100 hover:shadow-md transition-shadow">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-lg font-bold text-blue-900">{event.eventName}</h3>
-                  <p className="text-sm text-gray-500">{event.date}</p>
-                </div>
-                <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded font-medium">
-                  {event.personnel.length} Personel
-                </span>
-              </div>
+    return (
+      <div className="max-w-4xl mx-auto mt-10">
+        <div className="mb-6 flex items-center gap-4">
+          <button
+            onClick={() => setStep(AppStep.SETUP)}
+            className="bg-white p-2 rounded-full shadow hover:bg-gray-50 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-600" />
+          </button>
+          <h2 className="text-2xl font-bold text-gray-800">Geçmiş / Pasif Müsabakalar</h2>
+        </div>
 
-              <div className="mt-4 flex gap-2">
-                <button
-                  onClick={() => {
-                    setAddedPersonnel(event.personnel);
-                    // Pass the historical date
-                    setEventData({
-                      eventName: event.eventName,
-                      requiredCount: event.personnel.length,
-                      creationDate: event.date
-                    });
-                    setStep(AppStep.PASSIVE_LIST);
-                  }}
-                  className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
-                >
-                  <FileText className="w-4 h-4" /> Detayları Gör
-                </button>
-              </div>
+        <div className="grid gap-4">
+          {pastEvents.length === 0 ? (
+            <div className="bg-white p-8 rounded-xl shadow text-center text-gray-500">
+              <History className="w-12 h-12 mx-auto mb-3 opacity-20" />
+              <p>Henüz kaydedilmiş bir müsabaka yok.</p>
             </div>
-          ))
-        )}
+          ) : (
+            pastEvents.map((event) => (
+              <div key={event.id} className="bg-white p-6 rounded-xl shadow border border-gray-100 hover:shadow-md transition-shadow">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-lg font-bold text-blue-900">{event.eventName}</h3>
+                    <p className="text-sm text-gray-500">{event.date}</p>
+                  </div>
+                  <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded font-medium">
+                    {event.personnel.length} Personel
+                  </span>
+                </div>
+
+                <div className="mt-4 flex gap-2">
+                  <button
+                    onClick={() => {
+                      setAddedPersonnel(event.personnel);
+                      // Pass the historical date
+                      setEventData({
+                        eventName: event.eventName,
+                        requiredCount: event.personnel.length,
+                        creationDate: event.date
+                      });
+                      setStep(AppStep.PASSIVE_LIST);
+                    }}
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
+                  >
+                    <FileText className="w-4 h-4" /> Detayları Gör
+                  </button>
+
+                  <button
+                    onClick={() => handleDeleteEvent(event.id, event.eventName)}
+                    className="text-red-600 hover:text-red-800 text-sm font-medium flex items-center gap-1 ml-auto"
+                  >
+                    <Trash2 className="w-4 h-4" /> Sil
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderStatistics = () => (
     <div className="max-w-4xl mx-auto mt-10">
@@ -723,9 +731,9 @@ export default function App() {
                 <tr key={idx} className="hover:bg-gray-50">
                   <td className="px-6 py-3 text-center">
                     <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${idx === 0 ? 'bg-yellow-100 text-yellow-700' :
-                        idx === 1 ? 'bg-gray-200 text-gray-700' :
-                          idx === 2 ? 'bg-orange-100 text-orange-700' :
-                            'text-gray-500'
+                      idx === 1 ? 'bg-gray-200 text-gray-700' :
+                        idx === 2 ? 'bg-orange-100 text-orange-700' :
+                          'text-gray-500'
                       }`}>
                       {idx + 1}
                     </span>
