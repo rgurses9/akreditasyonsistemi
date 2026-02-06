@@ -295,7 +295,68 @@ export const getPersonnelStatistics = async (): Promise<{ personnel: Personnel, 
 
 // --- AUTH SERVICES ---
 
+// --- AUTH SERVICES ---
+
+export const getAllUsers = async (): Promise<User[]> => {
+  if (database) {
+    try {
+      const usersRef = ref(database, 'users');
+      const snapshot = await get(usersRef);
+
+      if (snapshot.exists()) {
+        const usersData = snapshot.val();
+        return Object.values(usersData);
+      }
+      return [];
+    } catch (error) {
+      console.error('❌ Kullanıcı listesi alma hatası:', error);
+      return [...MOCK_USERS];
+    }
+  }
+  return [...MOCK_USERS];
+};
+
+export const deleteUser = async (username: string): Promise<boolean> => {
+  // Memory'den sil
+  const index = MOCK_USERS.findIndex(u => u.username === username);
+  if (index !== -1) {
+    MOCK_USERS.splice(index, 1);
+  }
+
+  // Firebase'den sil
+  if (database) {
+    try {
+      const userRef = ref(database, `users/${username}`);
+      await set(userRef, null);
+      console.log(`✅ Kullanıcı silindi: ${username}`);
+      return true;
+    } catch (error) {
+      console.error('❌ Kullanıcı silme hatası:', error);
+      return false;
+    }
+  }
+  return true;
+};
+
 export const loginUser = async (username: string, password: string): Promise<User | null> => {
+  // Önce Firebase'den kontrol et
+  if (database) {
+    try {
+      const userRef = ref(database, `users/${username}`);
+      const snapshot = await get(userRef);
+
+      if (snapshot.exists()) {
+        const user = snapshot.val() as User;
+        if (user.password === password) {
+          return user;
+        }
+      }
+    } catch (error) {
+      console.error('❌ Firebase login hatası:', error);
+    }
+  }
+
+  // Fallback to mock
   return new Promise((resolve) => {
     setTimeout(() => {
       const user = MOCK_USERS.find(u => u.username === username && u.password === password);
@@ -305,14 +366,40 @@ export const loginUser = async (username: string, password: string): Promise<Use
 };
 
 export const createNewUser = async (newUser: User): Promise<boolean> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      if (MOCK_USERS.some(u => u.username === newUser.username)) {
-        resolve(false); // User exists
-      } else {
-        MOCK_USERS.push(newUser);
-        resolve(true);
+  // Memory'ye ekle
+  if (!MOCK_USERS.some(u => u.username === newUser.username)) {
+    MOCK_USERS.push(newUser);
+  }
+
+  // Firebase'e kaydet
+  if (database) {
+    try {
+      // Username key olarak kullanılıyor
+      const userRef = ref(database, `users/${newUser.username}`);
+
+      // Önce var mı kontrol et
+      const snapshot = await get(userRef);
+      if (snapshot.exists()) {
+        return false; // Kullanıcı zaten var
       }
-    }, 500);
-  });
+
+      await set(userRef, newUser);
+      console.log(`✅ Yeni kullanıcı oluşturuldu: ${newUser.username}`);
+      return true;
+    } catch (error) {
+      console.error('❌ Kullanıcı oluşturma hatası:', error);
+      return false;
+    }
+  }
+
+  return true;
+};
+
+// --- STATISTICS SERVICES ---
+
+export const getPersonnelEventHistory = async (sicil: string): Promise<CompletedEvent[]> => {
+  const allHistory = await getHistory();
+  return allHistory.filter(event =>
+    event.personnel.some(p => p.sicil === sicil)
+  );
 };

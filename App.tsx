@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Shield, UserPlus, FileDown, CheckCircle, Users, Activity, FileText, Lock, LogOut, MessageCircle, Trash2, History, ArrowLeft, Share2, Home, Save, BarChart3, UserCog, Send } from 'lucide-react';
 import { Personnel, EventData, AppStep, User, UserRole, CompletedEvent } from './types';
-import { getPersonnelBySicil, downloadAsExcel, loginUser, formatForWhatsApp, saveCompletedEvent, deleteEvent, getHistory, getExcelBlob, getPersonnelStatistics, createNewUser } from './services/dataService';
+import { getPersonnelBySicil, downloadAsExcel, loginUser, formatForWhatsApp, saveCompletedEvent, deleteEvent, getHistory, getExcelBlob, getPersonnelStatistics, createNewUser, getAllUsers, deleteUser, getPersonnelEventHistory } from './services/dataService';
 import { generateDutyReport } from './services/geminiService';
 import './services/firebase'; // Initialize Firebase
 
@@ -26,6 +26,11 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authInput, setAuthInput] = useState({ username: '', password: '', fullName: '', role: UserRole.USER });
   const [authError, setAuthError] = useState('');
+
+  // New States
+  const [users, setUsers] = useState<User[]>([]);
+  const [selectedPersonnel, setSelectedPersonnel] = useState<Personnel | null>(null);
+  const [personnelHistory, setPersonnelHistory] = useState<CompletedEvent[]>([]);
 
   // Refs for focus management
   const sicilInputRef = useRef<HTMLInputElement>(null);
@@ -215,6 +220,26 @@ export default function App() {
     setStep(AppStep.STATISTICS);
   };
 
+  const loadUsers = async () => {
+    const allUsers = await getAllUsers();
+    setUsers(allUsers);
+    setStep(AppStep.USER_MANAGEMENT);
+  };
+
+  const handleDeleteUser = async (username: string) => {
+    if (window.confirm(`${username} kullanıcısını silmek istediğinize emin misiniz?`)) {
+      await deleteUser(username);
+      loadUsers(); // Refresh list
+    }
+  };
+
+  const loadPersonnelDetail = async (personnel: Personnel) => {
+    setSelectedPersonnel(personnel);
+    const history = await getPersonnelEventHistory(personnel.sicil);
+    setPersonnelHistory(history);
+    setStep(AppStep.PERSONNEL_DETAIL);
+  };
+
   const goBackToMain = () => {
     setStep(AppStep.SETUP);
     setAddedPersonnel([]);
@@ -351,11 +376,11 @@ export default function App() {
             İstatistikler
           </button>
           <button
-            onClick={() => setStep(AppStep.USER_CREATION)}
+            onClick={loadUsers}
             className="col-span-1 md:col-span-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm border border-slate-200"
           >
             <UserCog className="w-4 h-4" />
-            Kullanıcı Oluştur
+            Kullanıcı Yönetimi
           </button>
         </div>
       )}
@@ -784,14 +809,22 @@ export default function App() {
   const renderUserCreation = () => (
     <div className="min-h-screen flex items-center justify-center px-4 -mt-20">
       <div className="max-w-md w-full bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
-        <div className="bg-slate-800 p-6 flex items-center gap-3">
+        <div className="bg-slate-800 p-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setStep(AppStep.SETUP)}
+              className="p-1 hover:bg-slate-700 rounded text-white"
+            >
+              <ArrowLeft className="w-6 h-6" />
+            </button>
+            <h2 className="text-xl font-bold text-white">Kullanıcı Oluştur</h2>
+          </div>
           <button
-            onClick={() => setStep(AppStep.SETUP)}
-            className="p-1 hover:bg-slate-700 rounded text-white"
+            onClick={loadUsers}
+            className="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded text-white transition-colors"
           >
-            <ArrowLeft className="w-6 h-6" />
+            Listeyi Yönet
           </button>
-          <h2 className="text-xl font-bold text-white">Kullanıcı Oluştur</h2>
         </div>
 
         <div className="p-8">
@@ -861,6 +894,146 @@ export default function App() {
           </form>
         </div>
       </div>
+    </div >
+  );
+
+  const renderPersonnelDetail = () => {
+    if (!selectedPersonnel) return null;
+
+    return (
+      <div className="max-w-4xl mx-auto mt-10">
+        <div className="mb-6 flex items-center gap-4">
+          <button
+            onClick={() => setStep(AppStep.STATISTICS)}
+            className="bg-white p-2 rounded-full shadow hover:bg-gray-50 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-600" />
+          </button>
+          <h2 className="text-2xl font-bold text-gray-800">Personel Detayları</h2>
+        </div>
+
+        {/* Personel Kartı */}
+        <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 mb-8">
+          <div className="flex flex-col md:flex-row gap-6 items-center md:items-start text-center md:text-left">
+            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center">
+              <UserCog className="w-10 h-10 text-blue-600" />
+            </div>
+
+            <div className="flex-1">
+              <h3 className="text-2xl font-bold text-gray-900">{selectedPersonnel.ad} {selectedPersonnel.soyad}</h3>
+              <p className="text-gray-500 font-medium">{selectedPersonnel.rutbe}</p>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <span className="block text-xs text-gray-400 uppercase font-semibold">Sicil</span>
+                  <span className="font-mono font-medium text-gray-700">{selectedPersonnel.sicil}</span>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <span className="block text-xs text-gray-400 uppercase font-semibold">T.C.</span>
+                  <span className="font-mono font-medium text-gray-700">{selectedPersonnel.tc}</span>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <span className="block text-xs text-gray-400 uppercase font-semibold">Telefon</span>
+                  <span className="font-mono font-medium text-gray-700">{selectedPersonnel.telefon}</span>
+                </div>
+                <div className="bg-purple-50 p-3 rounded-lg">
+                  <span className="block text-xs text-purple-400 uppercase font-semibold">Toplam Görev</span>
+                  <span className="font-bold text-purple-700">{personnelHistory.length}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <History className="w-5 h-5 text-purple-600" />
+          Görev Geçmişi
+        </h3>
+
+        {/* Görev Listesi */}
+        <div className="grid gap-4">
+          {personnelHistory.length === 0 ? (
+            <div className="bg-white p-8 rounded-xl shadow text-center text-gray-500">
+              <p>Bu personel henüz hiçbir görevde bulunmamış.</p>
+            </div>
+          ) : (
+            personnelHistory.map((event) => (
+              <div key={event.id} className="bg-white p-6 rounded-xl shadow border border-gray-100 hover:shadow-md transition-shadow">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-800">{event.eventName}</h4>
+                      <p className="text-sm text-gray-500">{event.date}</p>
+                    </div>
+                  </div>
+                  <span className="text-sm font-medium text-purple-600 bg-purple-50 px-3 py-1 rounded-full">
+                    Tamamlandı
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderUserManagement = () => (
+    <div className="max-w-4xl mx-auto mt-10">
+      <div className="mb-6 flex items-center gap-4">
+        <button
+          onClick={() => setStep(AppStep.USER_CREATION)}
+          className="bg-white p-2 rounded-full shadow hover:bg-gray-50 transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5 text-gray-600" />
+        </button>
+        <h2 className="text-2xl font-bold text-gray-800">Kullanıcı Yönetimi Listesi</h2>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-left text-sm">
+            <thead className="bg-gray-100 text-gray-600 uppercase tracking-wider font-semibold">
+              <tr>
+                <th className="px-6 py-3">Kullanıcı Adı</th>
+                <th className="px-6 py-3">Tam Ad</th>
+                <th className="px-6 py-3">Yetki</th>
+                <th className="px-6 py-3">İşlemler</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {users.map((user, idx) => (
+                <tr key={idx} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 font-mono text-gray-700">{user.username}</td>
+                  <td className="px-6 py-4 font-medium text-gray-900">{user.fullName || '-'}</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2 py-1 rounded text-xs font-bold ${user.role === UserRole.ADMIN
+                      ? 'bg-red-100 text-red-800'
+                      : 'bg-blue-100 text-blue-800'
+                      }`}>
+                      {user.role}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    {user.username !== 'admin' && user.username !== currentUser?.username && (
+                      <button
+                        onClick={() => handleDeleteUser(user.username)}
+                        className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-full transition-colors"
+                        title="Kullanıcıyı Sil"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 
@@ -913,6 +1086,8 @@ export default function App() {
         {step === AppStep.ADMIN_HISTORY && renderAdminHistory()}
         {step === AppStep.STATISTICS && renderStatistics()}
         {step === AppStep.USER_CREATION && renderUserCreation()}
+        {step === AppStep.USER_MANAGEMENT && renderUserManagement()}
+        {step === AppStep.PERSONNEL_DETAIL && renderPersonnelDetail()}
       </main>
     </div>
   );
