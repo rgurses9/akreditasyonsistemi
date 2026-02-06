@@ -75,13 +75,32 @@ export default function App() {
   };
 
   // Otomatik giriş kontrolü
+  // Otomatik giriş kontrolü - Debounce ile
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (authInput.username && authInput.password && !loading) {
+        checkAutoLogin(authInput.username, authInput.password);
+      }
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [authInput.username, authInput.password]);
+
   const checkAutoLogin = async (username: string, password: string) => {
-    if (username && password) {
+    if (loading || password.length < 3) return;
+
+    try {
       const user = await loginUser(username, password);
       if (user) {
-        // Otomatik giriş yap
-        handleLogin();
+        // Otomatik giriş başarılı
+        setLoading(true); // Görsel geçiş için kısa bir loading
+        setCurrentUser(user);
+        setStep(AppStep.SETUP);
+        setAuthError('');
+        setLoading(false);
       }
+    } catch (e) {
+      // Sessiz hata (henüz giriş yapılamadı)
     }
   };
 
@@ -270,11 +289,7 @@ export default function App() {
                 required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                 value={authInput.username}
-                onChange={(e) => {
-                  const newUsername = e.target.value;
-                  setAuthInput({ ...authInput, username: newUsername });
-                  checkAutoLogin(newUsername, authInput.password);
-                }}
+                onChange={(e) => setAuthInput({ ...authInput, username: e.target.value })}
               />
             </div>
 
@@ -285,11 +300,7 @@ export default function App() {
                 required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                 value={authInput.password}
-                onChange={(e) => {
-                  const newPassword = e.target.value;
-                  setAuthInput({ ...authInput, password: newPassword });
-                  checkAutoLogin(authInput.username, newPassword);
-                }}
+                onChange={(e) => setAuthInput({ ...authInput, password: e.target.value })}
               />
             </div>
 
