@@ -749,7 +749,7 @@ export default function App() {
                     <h3 className="text-lg font-bold text-blue-900">{event.eventName}</h3>
                     <p className="text-sm text-gray-500">{event.date}</p>
                   </div>
-                  <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded font-medium">
+                  <span className="bg-green-100 text-green-800 text-[10px] px-2 py-0.5 rounded font-medium">
                     {event.personnel.length} Personel
                   </span>
                 </div>
@@ -836,9 +836,12 @@ export default function App() {
                   <td className="px-6 py-3 font-semibold text-gray-800">{item.personnel.ad} {item.personnel.soyad}</td>
                   <td className="px-6 py-3 text-gray-500">{item.personnel.rutbe}</td>
                   <td className="px-6 py-3 text-right">
-                    <span className="bg-purple-100 text-purple-800 font-bold px-3 py-1 rounded-full">
+                    <button
+                      onClick={() => loadPersonnelDetail(item.personnel)}
+                      className="bg-purple-100 text-purple-800 font-bold px-3 py-1 rounded-full hover:bg-purple-200 transition-colors cursor-pointer"
+                    >
                       {item.count}
-                    </span>
+                    </button>
                   </td>
                 </tr>
               ))}
