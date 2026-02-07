@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Shield, UserPlus, FileDown, CheckCircle, Users, Activity, FileText, Lock, LogOut, Trash2, History, ArrowLeft, Share2, Home, Save, BarChart3, UserCog, Send, RefreshCw } from 'lucide-react';
+import { Shield, UserPlus, FileDown, CheckCircle, Users, Activity, FileText, Lock, LogOut, Trash2, History, ArrowLeft, Share2, Home, Save, BarChart3, UserCog, Send, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { Personnel, EventData, AppStep, User, UserRole, CompletedEvent } from './types';
 import { getPersonnelBySicil, downloadAsExcel, loginUser, saveCompletedEvent, deleteEvent, getHistory, getExcelBlob, getPersonnelStatistics, createNewUser, getAllUsers, deleteUser, getPersonnelEventHistory, getAllPersonnel, updateUserRole, downloadUsersAsExcel } from './services/dataService';
 import './services/firebase'; // Initialize Firebase
@@ -23,6 +23,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authInput, setAuthInput] = useState({ username: '', password: '', fullName: '', role: UserRole.USER });
   const [authError, setAuthError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   // New States
   const [users, setUsers] = useState<User[]>([]);
@@ -349,7 +350,8 @@ export default function App() {
               <input
                 type="text"
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 placeholder-gray-400"
+                placeholder="Kullanıcı adınızı giriniz"
                 value={authInput.username}
                 onChange={(e) => setAuthInput({ ...authInput, username: e.target.value })}
               />
@@ -357,13 +359,23 @@ export default function App() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Şifre</label>
-              <input
-                type="password"
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                value={authInput.password}
-                onChange={(e) => setAuthInput({ ...authInput, password: e.target.value })}
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  className="w-full px-4 py-2 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 placeholder-gray-400"
+                  placeholder="Şifrenizi giriniz"
+                  value={authInput.password}
+                  onChange={(e) => setAuthInput({ ...authInput, password: e.target.value })}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
             </div>
 
             {authError && <p className="text-red-500 text-sm text-center">{authError}</p>}
@@ -374,11 +386,11 @@ export default function App() {
               className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-lg transition-transform active:scale-95 shadow-md flex items-center justify-center gap-2"
             >
               {loading ? (
-                <span className="animate-pulse">İşleniyor...</span>
+                <span className="text-white animate-pulse">İşleniyor...</span>
               ) : (
                 <>
-                  <Lock className="w-4 h-4" />
-                  Giriş Yap
+                  <Lock className="w-4 h-4 text-white" />
+                  <span className="text-white">Giriş Yap</span>
                 </>
               )}
             </button>
@@ -404,8 +416,8 @@ export default function App() {
           <input
             type="text"
             required
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-            placeholder="Örn: Galatasaray - Fenerbahçe"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 placeholder-gray-400"
+            placeholder="Müsabaka ismi giriniz"
             value={eventData.eventName}
             onChange={(e) => setEventData({ ...eventData, eventName: e.target.value })}
           />
@@ -416,7 +428,7 @@ export default function App() {
             type="number"
             required
             min="1"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 placeholder-gray-400"
             placeholder="Örn: 50"
             value={eventData.requiredCount || ''}
             onChange={(e) => setEventData({ ...eventData, requiredCount: parseInt(e.target.value) })}
@@ -426,7 +438,7 @@ export default function App() {
           type="submit"
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-transform active:scale-95 shadow-md flex items-center justify-center gap-2"
         >
-          Listeyi Başlat <Users className="w-5 h-5" />
+          <span className="text-white">Listeyi Başlat</span> <Users className="w-5 h-5 text-white" />
         </button>
       </form>
 
@@ -437,22 +449,22 @@ export default function App() {
               onClick={loadHistory}
               className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
             >
-              <History className="w-4 h-4" />
-              Geçmiş
+              <History className="w-4 h-4 text-gray-700" />
+              <span className="text-gray-700">Geçmiş</span>
             </button>
             <button
               onClick={loadStatistics}
-              className="bg-gray-100 hover:bg-gray-200 text-purple-700 font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
+              className="bg-purple-100 hover:bg-purple-200 text-purple-700 font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
             >
-              <BarChart3 className="w-4 h-4" />
-              İstatistikler
+              <BarChart3 className="w-4 h-4 text-purple-700" />
+              <span className="text-purple-700">İstatistikler</span>
             </button>
             <button
               onClick={loadUsers}
               className="col-span-1 md:col-span-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm border border-slate-200"
             >
-              <UserCog className="w-4 h-4" />
-              Kullanıcı Yönetimi
+              <UserCog className="w-4 h-4 text-slate-700" />
+              <span className="text-slate-700">Kullanıcı Yönetimi</span>
             </button>
           </div>
         )
@@ -588,14 +600,6 @@ export default function App() {
         </p>
 
         <div className="flex flex-col gap-3">
-          <button
-            onClick={handleSaveOnly}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-base font-bold py-3 rounded-xl shadow-lg transition-transform hover:-translate-y-1 flex items-center justify-center gap-3"
-          >
-            <Save className="w-5 h-5" />
-            Listeyi Sisteme Kaydet (Pasif'e At)
-          </button>
-
           {/* Özel WhatsApp Butonu */}
           <button
             onClick={handleWhatsAppToAdmin}
@@ -611,14 +615,6 @@ export default function App() {
           >
             <FileDown className="w-5 h-5" />
             Excel Olarak İndir ve Kaydet
-          </button>
-
-          <button
-            onClick={handleWhatsAppExcelShare}
-            className="w-full bg-green-600 hover:bg-green-700 text-white text-base font-bold py-3 rounded-xl shadow-lg transition-transform hover:-translate-y-1 flex items-center justify-center gap-3"
-          >
-            <Share2 className="w-5 h-5" />
-            Genel Paylaş (WhatsApp/Diğer)
           </button>
 
           <button
