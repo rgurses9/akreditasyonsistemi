@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Shield, UserPlus, FileDown, CheckCircle, Users, Activity, FileText, Lock, LogOut, Trash2, History, ArrowLeft, Share2, Home, Save, BarChart3, UserCog, Send, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import { Shield, UserPlus, FileDown, CheckCircle, Users, Activity, FileText, Lock, LogOut, Trash2, History, ArrowLeft, Share2, Home, Save, BarChart3, UserCog, Send, RefreshCw, Eye, EyeOff, Edit, Check, X } from 'lucide-react';
 import { Personnel, EventData, AppStep, User, UserRole, CompletedEvent } from './types';
 import { getPersonnelBySicil, downloadAsExcel, loginUser, saveCompletedEvent, deleteEvent, getHistory, getExcelBlob, getPersonnelStatistics, createNewUser, getAllUsers, deleteUser, getPersonnelEventHistory, getAllPersonnel, updateUserRole, downloadUsersAsExcel } from './services/dataService';
 import './services/firebase'; // Initialize Firebase
@@ -31,6 +31,8 @@ export default function App() {
   const [personnelHistory, setPersonnelHistory] = useState<CompletedEvent[]>([]);
   const [allPersonnelData, setAllPersonnelData] = useState<Personnel[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editFormData, setEditFormData] = useState({ username: '', password: '', fullName: '' });
 
   // Refs for focus management
   const sicilInputRef = useRef<HTMLInputElement>(null);
@@ -243,6 +245,12 @@ export default function App() {
     const blob = getExcelBlob(addedPersonnel);
     const file = new File([blob], `${eventData.eventName} ÖZEL GÜVENLİK ŞUBE MÜDÜRLÜĞÜ.xls`, { type: 'application/vnd.ms-excel' });
 
+    // Excel'i indir
+    downloadAsExcel(addedPersonnel, eventData.eventName);
+
+    // WhatsApp numarasına yönlendir
+    const phoneNumber = "905383819261"; // 0538 381 92 61
+
     // Try Web Share API (Mobile native share)
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
@@ -253,12 +261,13 @@ export default function App() {
         });
       } catch (err) {
         console.log("Share failed", err);
+        // Share başarısız olursa da WhatsApp'ı aç
+        window.open(`https://wa.me/${phoneNumber}`, '_blank');
       }
     } else {
-      // Fallback for Desktop: Download and alert
-      downloadAsExcel(addedPersonnel, eventData.eventName);
-      alert('Excel dosyası indirildi. WhatsApp Web üzerinden dosyayı sürükleyip bırakarak gönderebilirsiniz.');
-      window.open('https://web.whatsapp.com', '_blank');
+      // Desktop: Excel'i indir ve WhatsApp Web aç
+      alert('Excel dosyası indirildi. WhatsApp üzerinden dosyayı paylaşabilirsiniz.');
+      window.open(`https://wa.me/${phoneNumber}`, '_blank');
     }
   };
   const handleWhatsAppToAdmin = async () => {
@@ -296,6 +305,38 @@ export default function App() {
   const handleDeleteUser = async (username: string) => {
     if (window.confirm(`${username} kullanıcısını silmek istediğinize emin misiniz?`)) {
       await deleteUser(username);
+      loadUsers(); // Refresh list
+    }
+  };
+
+  const handleEditUser = (user: User) => {
+    setEditingUser(user);
+    setEditFormData({
+      username: user.username,
+      password: user.password,
+      fullName: user.fullName || ''
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingUser(null);
+    setEditFormData({ username: '', password: '', fullName: '' });
+  };
+
+  const handleUpdateUser = async () => {
+    if (!editingUser) return;
+
+    const updatedUser: User = {
+      username: editingUser.username, // Username değiştirilemez
+      password: editFormData.password,
+      fullName: editFormData.fullName,
+      role: editingUser.role
+    };
+
+    const success = await createNewUser(updatedUser); // createNewUser aslında update de yapar
+    if (success) {
+      setEditingUser(null);
+      setEditFormData({ username: '', password: '', fullName: '' });
       loadUsers(); // Refresh list
     }
   };
@@ -1077,45 +1118,101 @@ export default function App() {
               <tr>
                 <th className="px-6 py-3">Kullanıcı Adı</th>
                 <th className="px-6 py-3">Tam Ad</th>
-                <th className="px-6 py-3">Yetki</th>
+                <th className="px-6 py-3">Şifre</th>
                 <th className="px-6 py-3">İşlemler</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {users.map((user, idx) => (
                 <tr key={idx} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 font-mono text-gray-700">{user.username}</td>
-                  <td className="px-6 py-4 font-medium text-gray-900">{user.fullName || '-'}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${user.role === UserRole.ADMIN
-                      ? 'bg-red-100 text-red-800'
-                      : 'bg-blue-100 text-blue-800'
-                      }`}>
-                      {user.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      {user.username !== 'admin' && user.username !== currentUser?.username && (
-                        <>
+                  {editingUser?.username === user.username ? (
+                    // Edit Mode
+                    <>
+                      <td className="px-6 py-4 font-mono text-gray-500">{user.username}</td>
+                      <td className="px-6 py-4">
+                        <input
+                          type="text"
+                          value={editFormData.fullName}
+                          onChange={(e) => setEditFormData({ ...editFormData, fullName: e.target.value })}
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm text-gray-900"
+                          placeholder="Tam ad"
+                        />
+                      </td>
+                      <td className="px-6 py-4">
+                        <input
+                          type="text"
+                          value={editFormData.password}
+                          onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value })}
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm text-gray-900"
+                          placeholder="Yeni şifre"
+                        />
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
                           <button
-                            onClick={() => handleToggleUserRole(user)}
-                            className="p-2 text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
-                            title="Yetkiyi Değiştir"
+                            onClick={handleUpdateUser}
+                            className="p-2 text-green-600 hover:bg-green-50 rounded-full transition-colors"
+                            title="Kaydet"
                           >
-                            <RefreshCw className="w-4 h-4" />
+                            <Check className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDeleteUser(user.username)}
-                            className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                            title="Kullanıcıyı Sil"
+                            onClick={handleCancelEdit}
+                            className="p-2 text-gray-500 hover:bg-gray-50 rounded-full transition-colors"
+                            title="İptal"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <X className="w-4 h-4" />
                           </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
+                        </div>
+                      </td>
+                    </>
+                  ) : (
+                    // View Mode
+                    <>
+                      <td className="px-6 py-4 font-mono text-gray-700">{user.username}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="font-medium text-gray-900">{user.fullName || '-'}</span>
+                          <span className={`mt-1 inline-block px-2 py-0.5 rounded text-xs font-bold w-fit ${user.role === UserRole.ADMIN
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-blue-100 text-blue-800'
+                            }`}>
+                            {user.role}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 font-mono text-gray-500">••••••••</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          {user.username !== 'admin' && user.username !== currentUser?.username && (
+                            <>
+                              <button
+                                onClick={() => handleEditUser(user)}
+                                className="p-2 text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
+                                title="Düzenle"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleToggleUserRole(user)}
+                                className="p-2 text-purple-500 hover:bg-purple-50 rounded-full transition-colors"
+                                title="Yetkiyi Değiştir"
+                              >
+                                <RefreshCw className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteUser(user.username)}
+                                className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                title="Kullanıcıyı Sil"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </>
+                  )}
                 </tr>
               ))}
             </tbody>
