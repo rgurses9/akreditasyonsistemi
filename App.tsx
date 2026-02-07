@@ -204,6 +204,7 @@ export default function App() {
     if (success) {
       setCreateUserStatus('success');
       setNewUserData({ username: '', password: '', fullName: '', role: UserRole.USER });
+      loadUsers(); // Kullanıcı listesini yenile
       setTimeout(() => setCreateUserStatus('idle'), 3000);
     } else {
       setCreateUserStatus('error');
