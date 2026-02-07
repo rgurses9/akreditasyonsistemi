@@ -1109,6 +1109,7 @@ export default function App() {
 
   const renderUserManagement = () => (
     <div className="max-w-4xl mx-auto mt-10">
+      {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button
@@ -1119,14 +1120,110 @@ export default function App() {
           </button>
           <h2 className="text-2xl font-bold text-gray-800">Kullanıcı Yönetimi Listesi</h2>
         </div>
-        <button
-          onClick={handleDownloadUsersExcel}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm transition-colors text-sm font-medium"
-        >
-          <FileDown className="w-4 h-4" />
-          Excel indir
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setCreateUserStatus(createUserStatus === 'idle' ? 'error' : 'idle')}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm transition-colors text-sm font-medium"
+          >
+            <UserPlus className="w-4 h-4" />
+            Yeni Kullanıcı Ekle
+          </button>
+          <button
+            onClick={handleDownloadUsersExcel}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm transition-colors text-sm font-medium"
+          >
+            <FileDown className="w-4 h-4" />
+            Excel indir
+          </button>
+        </div>
       </div>
+
+      {/* Yeni Kullanıcı Ekle Formu */}
+      {createUserStatus !== 'idle' && (
+        <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 mb-6">
+          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <UserPlus className="w-5 h-5 text-blue-600" />
+            Yeni Kullanıcı Oluştur
+          </h3>
+
+          <form onSubmit={handleCreateUser} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Kullanıcı Adı</label>
+                <input
+                  type="text"
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900"
+                  value={newUserData.username}
+                  onChange={(e) => setNewUserData({ ...newUserData, username: e.target.value })}
+                  placeholder="Örn: 441288"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Şifre</label>
+                <input
+                  type="text"
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900"
+                  value={newUserData.password}
+                  onChange={(e) => setNewUserData({ ...newUserData, password: e.target.value })}
+                  placeholder="Şifre giriniz"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tam Ad</label>
+              <input
+                type="text"
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900"
+                value={newUserData.fullName}
+                onChange={(e) => setNewUserData({ ...newUserData, fullName: e.target.value })}
+                placeholder="Ad Soyad"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Yetki Seviyesi</label>
+              <select
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900"
+                value={newUserData.role}
+                onChange={(e) => setNewUserData({ ...newUserData, role: e.target.value as UserRole })}
+              >
+                <option value={UserRole.USER}>KULLANICI</option>
+                <option value={UserRole.ADMIN}>ADMIN</option>
+              </select>
+            </div>
+
+            {createUserStatus === 'success' && (
+              <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
+                ✅ Kullanıcı başarıyla oluşturuldu!
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                type="submit"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition-colors"
+              >
+                Kullanıcı Oluştur
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCreateUserStatus('idle');
+                  setNewUserData({ username: '', password: '', fullName: '', role: UserRole.USER });
+                }}
+                className="px-6 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-lg font-medium transition-colors"
+              >
+                İptal
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
