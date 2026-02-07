@@ -1,6 +1,6 @@
 import { Personnel, User, UserRole, CompletedEvent } from '../types';
 import { database } from './firebase';
-import { ref, get, set } from 'firebase/database';
+import { ref, get, set, onValue } from 'firebase/database';
 
 // --- MOCK DATABASE (Personnel) ---
 // Test verileri kaldırıldı - Tüm personel verisi Firebase'de
@@ -314,6 +314,46 @@ export const getHistory = async (): Promise<CompletedEvent[]> => {
   }
 
   return loadHistoryFromCache();
+};
+
+// Real-time listener for history updates
+export const subscribeToHistory = (callback: (events: CompletedEvent[]) => void): (() => void) => {
+  if (!database) {
+    console.warn('⚠️ Firebase mevcut değil, real-time güncellemeler devre dışı');
+    return () => { }; // Empty unsubscribe function
+  }
+
+  const historyRef = ref(database, 'history');
+
+  const unsubscribe = onValue(historyRef, (snapshot) => {
+    if (snapshot.exists()) {
+      const historyData = snapshot.val();
+      const events: CompletedEvent[] = Object.values(historyData);
+
+      // Tarihe göre sırala (en yeni önce)
+      events.sort((a, b) => {
+        try {
+          const dateA = new Date(a.date.split(' ')[0].split('.').reverse().join('-'));
+          const dateB = new Date(b.date.split(' ')[0].split('.').reverse().join('-'));
+          return dateB.getTime() - dateA.getTime();
+        } catch (e) { return 0; }
+      });
+
+      // Memory ve Cache güncelle
+      MOCK_HISTORY.length = 0;
+      MOCK_HISTORY.push(...events);
+      localStorage.setItem('history_cache', JSON.stringify(events));
+
+      console.log(`🔄 Real-time güncelleme: ${events.length} etkinlik`);
+      callback(events);
+    } else {
+      callback([]);
+    }
+  }, (error) => {
+    console.error('❌ Real-time listener hatası:', error);
+  });
+
+  return unsubscribe;
 };
 
 export const getPersonnelStatistics = async (): Promise<{ personnel: Personnel, count: number }[]> => {

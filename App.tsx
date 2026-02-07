@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Shield, UserPlus, FileDown, CheckCircle, Users, Activity, FileText, Lock, LogOut, Trash2, History, ArrowLeft, Share2, Home, Save, BarChart3, UserCog, Send, RefreshCw, Eye, EyeOff, Edit, Check, X } from 'lucide-react';
 import { Personnel, EventData, AppStep, User, UserRole, CompletedEvent } from './types';
-import { getPersonnelBySicil, downloadAsExcel, loginUser, saveCompletedEvent, deleteEvent, getHistory, getExcelBlob, getPersonnelStatistics, createNewUser, getAllUsers, deleteUser, getPersonnelEventHistory, getAllPersonnel, updateUserRole, downloadUsersAsExcel } from './services/dataService';
+import { getPersonnelBySicil, downloadAsExcel, loginUser, saveCompletedEvent, deleteEvent, getHistory, getExcelBlob, getPersonnelStatistics, createNewUser, getAllUsers, deleteUser, getPersonnelEventHistory, getAllPersonnel, updateUserRole, downloadUsersAsExcel, subscribeToHistory } from './services/dataService';
 import './services/firebase'; // Initialize Firebase
 
 export default function App() {
@@ -108,6 +108,23 @@ export default function App() {
       sicilInputRef.current.focus();
     }
   }, [step, addedPersonnel]);
+
+  // Real-time history listener - tüm cihazlarda senkronize
+  useEffect(() => {
+    if (!currentUser) return; // Kullanıcı giriş yapmamışsa listener kurma
+
+    console.log('📡 History için real-time listener başlatılıyor...');
+    const unsubscribe = subscribeToHistory((events) => {
+      setPastEvents(events);
+      console.log(`✅ History güncellendi: ${events.length} etkinlik`);
+    });
+
+    // Cleanup: Component unmount olduğunda listener'ı kapat
+    return () => {
+      console.log('🔌 History listener kapatılıyor...');
+      unsubscribe();
+    };
+  }, [currentUser]); // currentUser değiştiğinde yeniden subscribe et
 
   // Handlers
   const handleStart = async (e: React.FormEvent) => {
