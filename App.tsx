@@ -267,7 +267,7 @@ export default function App() {
     downloadAsExcel(addedPersonnel, eventData.eventName);
 
     // WhatsApp numarasına yönlendir
-    const phoneNumber = "905383819261"; // 0538 381 92 61
+    const phoneNumber = "905437803272"; // 543 780 32 72
 
     // Try Web Share API (Mobile native share)
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -297,7 +297,7 @@ export default function App() {
     setStep(AppStep.PASSIVE_LIST);
 
     // 3. Open specific chat (No text pre-filled as requested)
-    const phoneNumber = "905383819261";
+    const phoneNumber = "905437803272";
 
     window.open(`https://wa.me/${phoneNumber}`, '_blank');
   };
@@ -665,7 +665,7 @@ export default function App() {
             className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white text-base font-bold py-3 rounded-xl shadow-lg transition-transform hover:-translate-y-1 flex items-center justify-center gap-3"
           >
             <Send className="w-5 h-5" />
-            0538 381 92 61 WhatsApp Mesaj Gönder
+            Spor Şube Müdürlüğünden Onur Özkan'a Gönder
           </button>
 
           <button
